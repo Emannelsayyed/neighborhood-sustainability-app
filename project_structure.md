@@ -28,6 +28,8 @@ neighborhood-sustainability-app/
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── Calculator/
+│   │   │   │   ├── GeographicDataDisplay.jsx
+│   │   │   │   ├── MapSelector.jsx
 │   │   │   │   ├── CalculatorForm.jsx
 │   │   │   │   ├── ResultsDisplay.jsx
 │   │   │   │   └── IndicatorInput.jsx
@@ -49,6 +51,7 @@ neighborhood-sustainability-app/
 │   ├── Dockerfile
 │   └── README.md
 ├── docker-compose.yml
+├── .env
 ├── .gitignore
 └── README.md
 ```

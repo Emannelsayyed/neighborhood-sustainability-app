@@ -1,40 +1,72 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import ErrorMessage from '../Common/ErrorMessage';
 
 const MapSelector = ({ onAreaSelected, onAnalyzeArea, analyzing }) => {
-  const mapRef = useRef(null);
-  const [map, setMap] = useState(null);
-  const [drawingLayer, setDrawingLayer] = useState(null);
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const drawingLayerRef = useRef(null);
+  const isInitializingRef = useRef(false);
+  
   const [currentPolygon, setCurrentPolygon] = useState(null);
   const [coordinates, setCoordinates] = useState([]);
   const [error, setError] = useState(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isDrawing, setIsDrawing] = useState(true);
 
-  useEffect(() => {
-    initializeMap();
-    return () => {
-      // Cleanup map on unmount
-      if (map) {
-        map.remove();
+  // Memoized cleanup function
+  const cleanupMap = useCallback(() => {
+    if (mapInstanceRef.current) {
+      try {
+        mapInstanceRef.current.off();
+        mapInstanceRef.current.remove();
+      } catch (e) {
+        console.warn('Error during map cleanup:', e);
       }
-    };
+      mapInstanceRef.current = null;
+    }
+    
+    if (drawingLayerRef.current) {
+      drawingLayerRef.current = null;
+    }
+    
+    isInitializingRef.current = false;
   }, []);
 
-  const initializeMap = async () => {
+  // Memoized initialization function
+  const initializeMap = useCallback(async () => {
+    // Prevent multiple initializations
+    if (isInitializingRef.current || mapInstanceRef.current) {
+      return;
+    }
+    
+    if (!mapContainerRef.current) {
+      return;
+    }
+
+    isInitializingRef.current = true;
+
     try {
       // Wait for Leaflet to load
       if (!window.L) {
         await loadLeafletLibraries();
       }
 
-      // Initialize map
-      const mapInstance = window.L.map(mapRef.current, {
+      // Create a clean container by replacing it
+      const container = mapContainerRef.current;
+      const parent = container.parentNode;
+      const newContainer = container.cloneNode(false);
+      parent.replaceChild(newContainer, container);
+      mapContainerRef.current = newContainer;
+
+      // Initialize map on the clean container
+      const mapInstance = window.L.map(newContainer, {
         center: [40.7128, -74.0060], // Default to NYC
         zoom: 13,
         zoomControl: true
       });
+
+      mapInstanceRef.current = mapInstance;
 
       // Add tile layers
       const osm = window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -65,20 +97,33 @@ const MapSelector = ({ onAreaSelected, onAnalyzeArea, analyzing }) => {
 
       // Initialize drawing layer
       const drawingLayerInstance = window.L.layerGroup().addTo(mapInstance);
-      setDrawingLayer(drawingLayerInstance);
+      drawingLayerRef.current = drawingLayerInstance;
 
       // Add drawing functionality
       enableDrawing(mapInstance, drawingLayerInstance);
 
-      setMap(mapInstance);
       setMapLoaded(true);
       setError(null);
 
     } catch (err) {
       setError('Failed to load map. Please refresh the page.');
       console.error('Map initialization error:', err);
+    } finally {
+      isInitializingRef.current = false;
     }
-  };
+  }, []);
+
+  // Effect for initialization
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      initializeMap();
+    }, 100); // Small delay to ensure DOM is ready
+
+    return () => {
+      clearTimeout(timer);
+      cleanupMap();
+    };
+  }, [initializeMap, cleanupMap]);
 
   const loadLeafletLibraries = () => {
     return new Promise((resolve, reject) => {
@@ -204,11 +249,11 @@ const MapSelector = ({ onAreaSelected, onAnalyzeArea, analyzing }) => {
   };
 
   const clearSelection = () => {
-    if (drawingLayer) {
-      drawingLayer.clearLayers();
+    if (drawingLayerRef.current) {
+      drawingLayerRef.current.clearLayers();
     }
-    if (map && map.pm) {
-      map.pm.removeControls();
+    if (mapInstanceRef.current && mapInstanceRef.current.pm) {
+      mapInstanceRef.current.pm.removeControls();
     }
     setCoordinates([]);
     setCurrentPolygon(null);
@@ -275,7 +320,7 @@ const MapSelector = ({ onAreaSelected, onAnalyzeArea, analyzing }) => {
 
       <div className="relative">
         <div
-          ref={mapRef}
+          ref={mapContainerRef}
           className="w-full h-96 rounded-lg border-2 border-gray-300"
           style={{ minHeight: '400px' }}
         />
