@@ -8,7 +8,8 @@ const IndicatorInput = ({
   unit, 
   description, 
   placeholder, 
-  onChange 
+  onChange,
+  isPrepopulated = false 
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -22,6 +23,9 @@ const IndicatorInput = ({
       <div className="flex items-center gap-2 mb-2">
         <label htmlFor={field} className="block text-sm font-medium text-gray-700">
           {label}
+          {isPrepopulated && (
+            <span className="ml-1 text-xs text-green-600 font-normal">(Auto-filled)</span>
+          )}
         </label>
         {unit && (
           <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
@@ -52,7 +56,11 @@ const IndicatorInput = ({
         value={value}
         onChange={handleInputChange}
         placeholder={placeholder}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+          isPrepopulated 
+            ? 'bg-green-50 border-green-300 text-green-900' 
+            : 'border-gray-300'
+        }`}
         step="any"
         min="0"
       />

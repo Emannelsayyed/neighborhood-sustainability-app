@@ -290,3 +290,45 @@ export const STORAGE_KEYS = {
   FORM_DATA: 'sustainability_form_data',
   LAST_RESULT: 'sustainability_last_result'
 };
+
+// Geographic Analysis Constants
+export const GEOGRAPHIC_CONSTANTS = {
+  DEFAULT_MAP_CENTER: [40.7128, -74.0060], // NYC [lat, lng] for Leaflet
+  DEFAULT_ZOOM: 13,
+  MIN_POLYGON_POINTS: 3,
+  ANALYSIS_CONFIDENCE_LEVELS: {
+    HIGH: 'high',
+    MEDIUM: 'medium', 
+    LOW: 'low'
+  }
+};
+
+// New API endpoints for geographic functionality
+export const GEOGRAPHIC_API_ENDPOINTS = {
+  ANALYZE_AREA: '/api/geographic/analyze-area',
+  CALCULATE_WITH_MAP: '/api/geographic/calculate-with-map',
+  GEE_STATUS: '/api/geographic/gee-status'
+};
+
+// Geographic workflow states
+export const GEOGRAPHIC_WORKFLOW_STATES = {
+  MAP_SELECTION: 'map_selection',
+  AREA_ANALYSIS: 'area_analysis', 
+  DATA_REVIEW: 'data_review',
+  FORM_INPUT: 'form_input',
+  CALCULATION: 'calculation'
+};
+
+// Data source types
+export const DATA_SOURCE_TYPES = {
+  MANUAL: 'manual',
+  SATELLITE: 'satellite',
+  HYBRID: 'hybrid'
+};
+
+// Confidence level colors for UI
+export const CONFIDENCE_COLORS = {
+  high: 'bg-green-100 text-green-800',
+  medium: 'bg-yellow-100 text-yellow-800',
+  low: 'bg-red-100 text-red-800'
+};

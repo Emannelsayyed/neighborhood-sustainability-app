@@ -45,6 +45,9 @@ export const sustainabilityAPI = {
   getExample: () => api.get('/api/example'),
   getWeights: () => api.get('/api/weights'),
   healthCheck: () => api.get('/health'),
+  analyzeArea: (data) => api.post('/api/geographic/analyze-area', data),
+  calculateWithMap: (data) => api.post('/api/geographic/calculate-with-map', data),
+  checkGEEStatus: () => api.get('/api/geographic/gee-status'),
 };
 
 export default api;
