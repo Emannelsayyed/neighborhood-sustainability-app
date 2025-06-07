@@ -4,7 +4,7 @@ pydantic==2.10.3
 pydantic-settings==2.6.1
 python-multipart==0.0.12
 python-dotenv==1.0.1
-earthengine-api==0.1.394
+earthengine-api==1.5.18
 geopy==2.4.1
 shapely==2.0.0,<3.0.0
 requests==2.31.0

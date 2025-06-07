@@ -20,6 +20,7 @@ neighborhood-sustainability-app/
 │   │       ├── __init__.py
 │   │       └── config.py
 │   ├── requirements.txt
+│   ├── .env
 │   ├── Dockerfile
 │   └── README.md
 ├── frontend/
@@ -47,11 +48,11 @@ neighborhood-sustainability-app/
 │   │   ├── App.jsx
 │   │   └── main.jsx
 │   ├── package.json
+│   ├── .env
 │   ├── vite.config.js
 │   ├── Dockerfile
 │   └── README.md
 ├── docker-compose.yml
-├── .env
 ├── .gitignore
 └── README.md
 ```

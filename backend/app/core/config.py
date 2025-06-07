@@ -19,9 +19,13 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     
     # Google Earth Engine Settings
+    # For development, these can be None - EE will use application default credentials
     GEE_SERVICE_ACCOUNT_EMAIL: Optional[str] = None
     GEE_SERVICE_ACCOUNT_KEY: Optional[str] = None
     GEE_PROJECT_ID: Optional[str] = None
+    
+    # Your Google Cloud Project ID
+    GOOGLE_CLOUD_PROJECT: str = "sustainability-index"
     
     class Config:
         env_file = ".env"
