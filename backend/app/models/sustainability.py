@@ -9,6 +9,7 @@ class EnvironmentalIndicators(BaseModel):
     commercial_area: float = Field(..., ge=0, description="Commercial area in square meters")
     industrial_area: float = Field(..., ge=0, description="Industrial area in square meters")
     impervious_surface_area: float = Field(..., ge=0, description="Area of impervious surfaces in square meters")
+    air_quality_aod: float = Field(..., ge=0, le=1, description="Annual average Aerosol Optical Depth (AOD) value")
 
 class SocialIndicators(BaseModel):
     total_population: int = Field(..., gt=0, description="Total neighborhood population")
@@ -20,6 +21,7 @@ class SocialIndicators(BaseModel):
     residents_near_hospitals: int = Field(..., ge=0, description="Residents within 1 mile of hospitals")
     residents_near_fire_stations: int = Field(..., ge=0, description="Residents within 2 miles of fire stations")
     street_intersections: int = Field(..., ge=0, description="Number of street intersections")
+    residents_near_police: int = Field(..., ge=0, description="Residents within 1 mile of police stations")
 
 class EconomicIndicators(BaseModel):
     median_household_income: float = Field(..., ge=0, description="Median household income in dollars")
@@ -39,6 +41,7 @@ class IndicatorResults(BaseModel):
     average_residential_density: float
     land_use_diversity: float
     impervious_surface_percentage: float
+    air_quality: float
     
     # Social
     crime_rate: float
@@ -47,6 +50,7 @@ class IndicatorResults(BaseModel):
     access_to_schools: float
     access_to_hospitals: float
     access_to_fire_stations: float
+    access_to_police: float
     walkability: float
     
     # Economic
@@ -60,6 +64,7 @@ class NormalizedResults(BaseModel):
     ard_normalized: float
     lud_normalized: float
     isp_normalized: float
+    aq_normalized: float
     
     # Social (normalized 0-1)
     cr_normalized: float
@@ -68,6 +73,7 @@ class NormalizedResults(BaseModel):
     as_normalized: float
     ah_normalized: float
     af_normalized: float
+    ap_normalized: float
     w_normalized: float
     
     # Economic (normalized 0-1)

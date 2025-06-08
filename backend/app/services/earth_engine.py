@@ -223,6 +223,42 @@ class EarthEngineService:
                 vegetation_percentage=30.0,
                 bare_soil_percentage=25.0
             )
+        
+
+    @staticmethod
+    def analyze_air_quality(bounds: GeographicBounds, start_date: str = "2023-01-01", 
+                        end_date: str = "2023-12-31") -> float:
+        """Analyze air quality using Sentinel-5P TROPOMI AOD data"""
+        try:
+            geometry = EarthEngineService.create_geometry_from_bounds(bounds)
+            
+            # Get Sentinel-5P TROPOMI Aerosol Index data
+            s5p = (ee.ImageCollection("COPERNICUS/S5P/NRTI/L3_AER_AI")
+                .filterDate(start_date, end_date)
+                .filterBounds(geometry)
+                .select('absorbing_aerosol_index'))
+            
+            # Calculate annual average AOD
+            annual_aod = s5p.mean()
+            
+            # Get statistics for the area
+            aod_stats = annual_aod.reduceRegion(
+                reducer=ee.Reducer.mean(),
+                geometry=geometry,
+                scale=1113.2,  # Native resolution of S5P data
+                maxPixels=1e9
+            ).getInfo()
+            
+            # Extract AOD value, default to 0.3 if no data
+            aod_value = aod_stats.get('absorbing_aerosol_index', 0.3)
+            
+            # Ensure value is within valid range [0, 1]
+            return max(0.0, min(1.0, abs(aod_value)))
+            
+        except Exception as e:
+            logger.error(f"Error analyzing air quality: {e}")
+            # Return default moderate air quality value
+            return 0.3
     
     @staticmethod
     def _estimate_area_from_bounds(bounds: GeographicBounds) -> float:

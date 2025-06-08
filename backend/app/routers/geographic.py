@@ -126,6 +126,13 @@ def _generate_suggested_environmental_data(land_cover, satellite_data) -> Dict[s
         suggestions["dwelling_units"] = int(urban_hectares * 25)
     else:
         suggestions["dwelling_units"] = 100  # Default minimum
+
+    # Add air quality data using Earth Engine
+    try:
+        aod_value = EarthEngineService.analyze_air_quality(land_cover.bounds if hasattr(land_cover, 'bounds') else None)
+        suggestions["air_quality_aod"] = aod_value
+    except:
+        suggestions["air_quality_aod"] = 0.3  # Default moderate air quality    
     
     # Add confidence scores based on satellite data quality
     if satellite_data:

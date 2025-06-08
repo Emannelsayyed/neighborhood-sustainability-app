@@ -13,12 +13,13 @@ class SustainabilityCalculator:
         'gsp_max': 50,  # 50% green space as benchmark
         'ard_max': 12,  # 12 dwelling units per acre
         'lud_max_types': 4,  # 4 land use types for max diversity
+        'aq_max': 1.0,  # AOD of 1.0 as high pollution threshold
         'cr_max': 100,  # 100 crimes per 1000 as high threshold
         'w_max': 140,  # 140 intersections per sq mile
         'mhi_max': 100000,  # $100,000 as high income benchmark
         'ur_max': 20,  # 20% unemployment as high threshold
     }
-    
+        
     # Weights for final aggregation
     WEIGHTS = {
         'environmental': 0.40,
@@ -50,6 +51,7 @@ class SustainabilityCalculator:
             lud = 0
         
         isp = (env.impervious_surface_area / env.total_area) * 100
+        aq = env.air_quality_aod
         
         # Social indicators
         cr = (soc.total_crimes / soc.total_population) * 1000
@@ -58,6 +60,7 @@ class SustainabilityCalculator:
         as_score = (soc.residents_near_schools / soc.total_population) * 100
         ah = (soc.residents_near_hospitals / soc.total_population) * 100
         af = (soc.residents_near_fire_stations / soc.total_population) * 100
+        ap = (soc.residents_near_police / soc.total_population) * 100
         
         # Convert area to square miles for walkability (1 m² = 3.861e-7 sq miles)
         total_sq_miles = env.total_area * 3.861e-7
@@ -73,12 +76,14 @@ class SustainabilityCalculator:
             average_residential_density=ard,
             land_use_diversity=lud,
             impervious_surface_percentage=isp,
+            air_quality=aq,
             crime_rate=cr,
             education_level=el,
             access_to_transit=apt,
             access_to_schools=as_score,
             access_to_hospitals=ah,
             access_to_fire_stations=af,
+            access_to_police=ap,
             walkability=w,
             median_household_income=mhi,
             unemployment_rate=ur,
@@ -94,6 +99,7 @@ class SustainabilityCalculator:
         ard_norm = min(1.0, indicators.average_residential_density / SustainabilityCalculator.THRESHOLDS['ard_max'])
         lud_norm = indicators.land_use_diversity / math.log(SustainabilityCalculator.THRESHOLDS['lud_max_types'])
         isp_norm = max(0.0, 1.0 - indicators.impervious_surface_percentage / 100)  # Lower is better
+        aq_norm = max(0.0, 1.0 - indicators.air_quality / SustainabilityCalculator.THRESHOLDS['aq_max'])
         
         # Social (higher is better except crime rate)
         cr_norm = max(0.0, 1.0 - indicators.crime_rate / SustainabilityCalculator.THRESHOLDS['cr_max'])  # Lower is better
@@ -102,6 +108,7 @@ class SustainabilityCalculator:
         as_norm = indicators.access_to_schools / 100
         ah_norm = indicators.access_to_hospitals / 100
         af_norm = indicators.access_to_fire_stations / 100
+        ap_norm = indicators.access_to_police / 100
         w_norm = min(1.0, indicators.walkability / SustainabilityCalculator.THRESHOLDS['w_max'])
         
         # Economic (higher is better except unemployment)
@@ -114,12 +121,14 @@ class SustainabilityCalculator:
             ard_normalized=ard_norm,
             lud_normalized=lud_norm,
             isp_normalized=isp_norm,
+            aq_normalized=aq_norm,
             cr_normalized=cr_norm,
             el_normalized=el_norm,
             apt_normalized=apt_norm,
             as_normalized=as_norm,
             ah_normalized=ah_norm,
             af_normalized=af_norm,
+            pa_normalized=ap_norm,
             w_normalized=w_norm,
             mhi_normalized=mhi_norm,
             ur_normalized=ur_norm,
@@ -130,15 +139,16 @@ class SustainabilityCalculator:
     def calculate_category_scores(normalized: NormalizedResults) -> Tuple[float, float, float]:
         """Calculate category scores (0-100)"""
         
-        # Environmental score (average of 4 indicators)
+        # Environmental score (average of 5 indicators)
         env_score = (
             normalized.gsp_normalized + 
             normalized.ard_normalized + 
             normalized.lud_normalized + 
-            normalized.isp_normalized
-        ) / 4 * 100
+            normalized.isp_normalized +
+            normalized.aq_normalized
+        ) / 5 * 100
         
-        # Social score (average of 7 indicators)
+        # Social score (average of 8 indicators)
         soc_score = (
             normalized.cr_normalized + 
             normalized.el_normalized + 
@@ -146,8 +156,10 @@ class SustainabilityCalculator:
             normalized.as_normalized + 
             normalized.ah_normalized + 
             normalized.af_normalized + 
-            normalized.w_normalized
-        ) / 7 * 100
+            normalized.ap_normalized +
+            normalized.w_normalized 
+            
+        ) / 8 * 100
         
         # Economic score (average of 3 indicators)
         eco_score = (
@@ -221,7 +233,7 @@ class SustainabilityCalculator:
                 description="Proportion of vegetated area indicating environmental health",
                 calculation="(Green space area / Total area) × 100",
                 category="Environmental",
-                weight=12.0,
+                weight=10.0,
                 threshold=50.0
             ),
             IndicatorDefinition(
@@ -229,7 +241,7 @@ class SustainabilityCalculator:
                 description="Dwelling units per acre reflecting compact development",
                 calculation="Total dwelling units / Total area (acres)",
                 category="Environmental",
-                weight=8.0,
+                weight=7.0,
                 threshold=12.0
             ),
             IndicatorDefinition(
@@ -237,7 +249,7 @@ class SustainabilityCalculator:
                 description="Variety of land use types using Shannon Diversity Index",
                 calculation="Shannon Index: -Σ(pi × ln(pi))",
                 category="Environmental",
-                weight=8.0,
+                weight=7.0,
                 threshold=1.39
             ),
             IndicatorDefinition(
@@ -245,7 +257,15 @@ class SustainabilityCalculator:
                 description="Non-permeable surfaces affecting runoff and heat",
                 calculation="(Impervious area / Total area) × 100",
                 category="Environmental",
-                weight=12.0
+                weight=8.0
+            ),
+            IndicatorDefinition(
+                name="Air Quality",
+                description="Annual average Aerosol Optical Depth indicating air pollution",
+                calculation="Annual average AOD from Sentinel-5P TROPOMI data",
+                category="Environmental",
+                weight=8.0,
+                threshold=1.0
             ),
             # Social indicators...
             IndicatorDefinition(
@@ -261,28 +281,28 @@ class SustainabilityCalculator:
                 description="Percentage with bachelor's degree or higher",
                 calculation="(Adults with degree / Total adults) × 100",
                 category="Social",
-                weight=4.0
+                weight=3.0
             ),
             IndicatorDefinition(
                 name="Access to Transit",
                 description="Percentage within 0.5 miles of public transit",
                 calculation="(Residents near transit / Total population) × 100",
                 category="Social",
-                weight=5.0
+                weight=4.0
             ),
             IndicatorDefinition(
                 name="Access to Schools",
                 description="Percentage within 0.5 miles of schools",
                 calculation="(Residents near schools / Total population) × 100",
                 category="Social",
-                weight=5.0
+                weight=4.0
             ),
             IndicatorDefinition(
                 name="Access to Hospitals",
                 description="Percentage within 1 mile of hospitals",
                 calculation="(Residents near hospitals / Total population) × 100",
                 category="Social",
-                weight=5.0
+                weight=4.0
             ),
             IndicatorDefinition(
                 name="Access to Fire Stations",
@@ -290,6 +310,13 @@ class SustainabilityCalculator:
                 calculation="(Residents near fire stations / Total population) × 100",
                 category="Social",
                 weight=3.0
+            ),
+            IndicatorDefinition(
+                name="Access to Police",
+                description="Percentage within 1 mile of police stations",
+                calculation="(Residents near police / Total population) × 100",
+                category="Social",
+                weight=4.0
             ),
             IndicatorDefinition(
                 name="Walkability",

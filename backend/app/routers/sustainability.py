@@ -47,7 +47,8 @@ async def get_example_input():
                 "residential_area": 400000,  # 400,000 m²
                 "commercial_area": 300000,   # 300,000 m²
                 "industrial_area": 100000,   # 100,000 m²
-                "impervious_surface_area": 300000  # 300,000 m²
+                "impervious_surface_area": 300000,  # 300,000 m²
+                "air_quality_aod": 0.3
             },
             "social": {
                 "total_population": 10000,
@@ -58,6 +59,7 @@ async def get_example_input():
                 "residents_near_schools": 8000,
                 "residents_near_hospitals": 9000,
                 "residents_near_fire_stations": 9500,
+                "residents_near_police": 9200,
                 "street_intersections": 120
             },
             "economic": {
@@ -88,18 +90,20 @@ async def get_category_weights():
             },
             "indicator_weights": {
                 "environmental": {
-                    "green_space_percentage": 12,
-                    "average_residential_density": 8,
-                    "land_use_diversity": 8,
-                    "impervious_surface_percentage": 12
+                    "green_space_percentage": 10,
+                    "average_residential_density": 7,
+                    "land_use_diversity": 7,
+                    "impervious_surface_percentage": 8,
+                    "air_quality": 8
                 },
                 "social": {
                     "crime_rate": 4,
-                    "education_level": 4,
-                    "access_to_transit": 5,
-                    "access_to_schools": 5,
-                    "access_to_hospitals": 5,
+                    "education_level": 3,
+                    "access_to_transit": 4,
+                    "access_to_schools": 4,
+                    "access_to_hospitals": 4,
                     "access_to_fire_stations": 3,
+                    "access_to_police": 4,
                     "walkability": 4
                 },
                 "economic": {
