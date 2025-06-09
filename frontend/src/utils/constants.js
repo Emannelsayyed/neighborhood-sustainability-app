@@ -10,7 +10,8 @@ export const DEFAULT_VALUES = {
     residential_area: 0,
     commercial_area: 0,
     industrial_area: 0,
-    impervious_surface_area: 0
+    impervious_surface_area: 0,
+    air_quality_aod: 0 
   },
   social: {
     total_population: 0,
@@ -21,6 +22,7 @@ export const DEFAULT_VALUES = {
     residents_near_schools: 0,
     residents_near_hospitals: 0,
     residents_near_fire_stations: 0,
+    residents_near_police: 0,
     street_intersections: 0
   },
   economic: {
@@ -87,6 +89,13 @@ export const INDICATOR_GROUPS = [
         unit: 'm²',
         description: 'Area covered by roads, parking lots, and other non-permeable surfaces',
         placeholder: 'e.g., 300000'
+      },
+      {
+        field: 'air_quality_aod',
+        label: 'Air Quality (AOD)',
+        unit: 'AOD',
+        description: 'Aerosol Optical Depth - measure of air pollution from satellite data',
+        placeholder: 'e.g., 0.3'
       }
     ]
   },
@@ -150,6 +159,13 @@ export const INDICATOR_GROUPS = [
         unit: 'people',
         description: 'Residents within 2 miles of fire stations',
         placeholder: 'e.g., 9500'
+      },
+      {
+        field: 'residents_near_police',
+        label: 'Residents Near Police',
+        unit: 'people',
+        description: 'Residents within 1 mile of police stations',
+        placeholder: 'e.g., 9200'
       },
       {
         field: 'street_intersections',
@@ -236,7 +252,8 @@ export const EXAMPLE_DATA = {
     residential_area: 400000,
     commercial_area: 300000,
     industrial_area: 100000,
-    impervious_surface_area: 300000
+    impervious_surface_area: 300000,
+    air_quality_aod: 0.3
   },
   social: {
     total_population: 10000,
@@ -247,6 +264,7 @@ export const EXAMPLE_DATA = {
     residents_near_schools: 8000,
     residents_near_hospitals: 9000,
     residents_near_fire_stations: 9500,
+    residents_near_police: 9200,
     street_intersections: 120
   },
   economic: {

@@ -33,7 +33,8 @@ const CalculatorForm = ({
           residential_area: suggested_environmental_data.residential_area || prev.environmental.residential_area,
           commercial_area: suggested_environmental_data.commercial_area || prev.environmental.commercial_area,
           industrial_area: suggested_environmental_data.industrial_area || prev.environmental.industrial_area,
-          impervious_surface_area: suggested_environmental_data.impervious_surface_area || prev.environmental.impervious_surface_area
+          impervious_surface_area: suggested_environmental_data.impervious_surface_area || prev.environmental.impervious_surface_area,
+          air_quality_aod: suggested_environmental_data.air_quality_aod || prev.environmental.air_quality_aod
         }
       }));
       
@@ -74,7 +75,8 @@ const CalculatorForm = ({
         residential_area: 400000,
         commercial_area: 300000,
         industrial_area: 100000,
-        impervious_surface_area: 300000
+        impervious_surface_area: 300000,
+        air_quality_aod: 0.3
       },
       social: {
         total_population: 10000,
@@ -85,6 +87,7 @@ const CalculatorForm = ({
         residents_near_schools: 8000,
         residents_near_hospitals: 9000,
         residents_near_fire_stations: 9500,
+        residents_near_police: 9200,
         street_intersections: 120
       },
       economic: {
@@ -113,7 +116,8 @@ const CalculatorForm = ({
           residential_area: suggested_environmental_data.residential_area || 0,
           commercial_area: suggested_environmental_data.commercial_area || 0,
           industrial_area: suggested_environmental_data.industrial_area || 0,
-          impervious_surface_area: suggested_environmental_data.impervious_surface_area || 0
+          impervious_surface_area: suggested_environmental_data.impervious_surface_area || 0,
+          air_quality_aod: suggested_environmental_data.air_quality_aod || 0
         }
       }));
     }
@@ -136,7 +140,7 @@ const CalculatorForm = ({
     if (category !== 'environmental' || !isDataPrepopulated) return false;
     const environmentalFields = ['green_space_area', 'total_area', 'dwelling_units', 
                                 'residential_area', 'commercial_area', 'industrial_area', 
-                                'impervious_surface_area'];
+                                'impervious_surface_area', 'air_quality_aod'];
     return environmentalFields.includes(field);
   };
 

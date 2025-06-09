@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 from app.models.geographic import GeographicBounds, SatelliteData, LandCoverAnalysis
 from app.core.config import settings
 import logging
+from math import cos, radians
 
 logger = logging.getLogger(__name__)
 
@@ -283,5 +284,3 @@ class EarthEngineService:
         
         return lat_meters * lng_meters
 
-# Import required math functions
-from math import cos, radians

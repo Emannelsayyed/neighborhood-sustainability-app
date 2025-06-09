@@ -3,11 +3,14 @@ from fastapi import APIRouter, HTTPException
 from app.models.geographic import (
     GeographicAnalysisRequest, 
     GeographicAnalysisResponse,
-    EnhancedSustainabilityInput
+    EnhancedSustainabilityInput,
+    LandCoverAnalysis,
+    SatelliteData,
+    GeographicBounds
 )
 from app.services.earth_engine import EarthEngineService
 from app.services.calculator import SustainabilityCalculator
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,7 +36,7 @@ async def analyze_geographic_area(request: GeographicAnalysisRequest):
             satellite_data = EarthEngineService.analyze_satellite_data(request.bounds)
         
         # Generate suggested environmental data based on analysis
-        suggested_data = _generate_suggested_environmental_data(land_cover, satellite_data)
+        suggested_data = _generate_suggested_environmental_data(land_cover, satellite_data, request.bounds)
         
         return GeographicAnalysisResponse(
             bounds=request.bounds,
@@ -107,7 +110,7 @@ async def check_earth_engine_status():
             "message": f"Google Earth Engine error: {str(e)}"
         }
 
-def _generate_suggested_environmental_data(land_cover, satellite_data) -> Dict[str, Any]:
+def _generate_suggested_environmental_data(land_cover: LandCoverAnalysis, satellite_data: Optional[SatelliteData], bounds: GeographicBounds) -> Dict[str, Any]:
     """Generate suggested environmental indicator values based on satellite analysis"""
     
     suggestions = {
@@ -129,7 +132,7 @@ def _generate_suggested_environmental_data(land_cover, satellite_data) -> Dict[s
 
     # Add air quality data using Earth Engine
     try:
-        aod_value = EarthEngineService.analyze_air_quality(land_cover.bounds if hasattr(land_cover, 'bounds') else None)
+        aod_value = EarthEngineService.analyze_air_quality(bounds)
         suggestions["air_quality_aod"] = aod_value
     except:
         suggestions["air_quality_aod"] = 0.3  # Default moderate air quality    

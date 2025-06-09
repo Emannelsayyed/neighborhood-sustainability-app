@@ -35,7 +35,7 @@ const ResultsDisplay = ({ result }) => {
     <div className="mb-4">
       <div className="flex justify-between items-center mb-1">
         <span className="text-sm font-medium text-gray-700">{label}</span>
-        <span className={`text-sm font-bold ${color}`}>{value.toFixed(1)}</span>
+        <span className={`text-sm font-bold ${color}`}>{(value ?? 0).toFixed(1)}</span>
       </div>
       <div className="w-full bg-gray-200 rounded-full h-2">
         <div
@@ -51,12 +51,14 @@ const ResultsDisplay = ({ result }) => {
     { key: 'average_residential_density', label: 'Residential Density', unit: 'DU/acre', category: 'env' },
     { key: 'land_use_diversity', label: 'Land Use Diversity', unit: 'index', category: 'env' },
     { key: 'impervious_surface_percentage', label: 'Impervious Surface', unit: '%', category: 'env' },
+    { key: 'air_quality_aod', label: 'Air Quality (AOD)', unit: 'AOD', category: 'env' },
     { key: 'crime_rate', label: 'Crime Rate', unit: 'per 1,000', category: 'social' },
     { key: 'education_level', label: 'Education Level', unit: '%', category: 'social' },
     { key: 'access_to_transit', label: 'Transit Access', unit: '%', category: 'social' },
     { key: 'access_to_schools', label: 'School Access', unit: '%', category: 'social' },
     { key: 'access_to_hospitals', label: 'Hospital Access', unit: '%', category: 'social' },
     { key: 'access_to_fire_stations', label: 'Fire Station Access', unit: '%', category: 'social' },
+    { key: 'access_to_police', label: 'Police Access', unit: '%', category: 'social' },
     { key: 'walkability', label: 'Walkability', unit: 'intersections/sq mile', category: 'social' },
     { key: 'median_household_income', label: 'Median Income', unit: '$', category: 'econ' },
     { key: 'unemployment_rate', label: 'Unemployment Rate', unit: '%', category: 'econ' },
@@ -74,7 +76,7 @@ const ResultsDisplay = ({ result }) => {
         
         <div className="mb-4">
           <div className={`text-5xl font-bold mb-2 ${getScoreColor(result.sustainability_index)}`}>
-            {result.sustainability_index}
+            {(result.sustainability_index ?? 0).toFixed(1)}
           </div>
           <div className={`inline-flex items-center px-4 py-2 rounded-full text-xl font-bold ${getGradeColor(result.grade)}`}>
             Grade: {result.grade}
@@ -94,7 +96,7 @@ const ResultsDisplay = ({ result }) => {
             <h3 className="text-lg font-semibold text-gray-800">Environmental</h3>
           </div>
           <div className={`text-3xl font-bold mb-2 ${getScoreColor(result.environmental_score)}`}>
-            {result.environmental_score}
+            {(result.environmental_score ?? 0).toFixed(1)}
           </div>
           <ProgressBar 
             value={result.environmental_score} 
@@ -109,7 +111,7 @@ const ResultsDisplay = ({ result }) => {
             <h3 className="text-lg font-semibold text-gray-800">Social</h3>
           </div>
           <div className={`text-3xl font-bold mb-2 ${getScoreColor(result.social_score)}`}>
-            {result.social_score}
+            {(result.social_score ?? 0).toFixed(1)}
           </div>
           <ProgressBar 
             value={result.social_score} 
@@ -124,7 +126,7 @@ const ResultsDisplay = ({ result }) => {
             <h3 className="text-lg font-semibold text-gray-800">Economic</h3>
           </div>
           <div className={`text-3xl font-bold mb-2 ${getScoreColor(result.economic_score)}`}>
-            {result.economic_score}
+            {(result.economic_score ?? 0).toFixed(1)}
           </div>
           <ProgressBar 
             value={result.economic_score} 
@@ -153,7 +155,7 @@ const ResultsDisplay = ({ result }) => {
                 <div key={indicator.key} className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">{indicator.label}:</span>
                   <span className="font-medium">
-                    {result.indicators[indicator.key].toFixed(1)} {indicator.unit}
+                    {(result.indicators[indicator.key] ?? 0).toFixed(1)} {indicator.unit}
                   </span>
                 </div>
               ))}
@@ -171,7 +173,7 @@ const ResultsDisplay = ({ result }) => {
                 <div key={indicator.key} className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">{indicator.label}:</span>
                   <span className="font-medium">
-                    {result.indicators[indicator.key].toFixed(1)} {indicator.unit}
+                    {(result.indicators[indicator.key] ?? 0).toFixed(1)} {indicator.unit}
                   </span>
                 </div>
               ))}
@@ -190,8 +192,8 @@ const ResultsDisplay = ({ result }) => {
                   <span className="text-sm text-gray-600">{indicator.label}:</span>
                   <span className="font-medium">
                     {indicator.key === 'median_household_income' 
-                      ? '$' + result.indicators[indicator.key].toLocaleString()
-                      : result.indicators[indicator.key].toFixed(1) + ' ' + indicator.unit
+                      ? '$' + (result.indicators[indicator.key] ?? 0).toLocaleString()
+                      : (result.indicators[indicator.key] ?? 0).toFixed(1) + ' ' + indicator.unit
                     }
                   </span>
                 </div>

@@ -128,7 +128,7 @@ class SustainabilityCalculator:
             as_normalized=as_norm,
             ah_normalized=ah_norm,
             af_normalized=af_norm,
-            pa_normalized=ap_norm,
+            ap_normalized=ap_norm,
             w_normalized=w_norm,
             mhi_normalized=mhi_norm,
             ur_normalized=ur_norm,

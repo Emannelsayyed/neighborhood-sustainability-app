@@ -14,6 +14,13 @@ const GeographicDataDisplay = ({ analysisData, onUseData, onModifyData }) => {
 
   const formatPercentage = (value) => `${value.toFixed(1)}%`;
 
+  const getAirQualityStatus = (aod) => {
+    if (aod <= 0.2) return { status: 'Good', color: 'text-green-600', bgColor: 'bg-green-100' };
+    if (aod <= 0.4) return { status: 'Moderate', color: 'text-yellow-600', bgColor: 'bg-yellow-100' };
+    if (aod <= 0.6) return { status: 'Poor', color: 'text-orange-600', bgColor: 'bg-orange-100' };
+    return { status: 'Very Poor', color: 'text-red-600', bgColor: 'bg-red-100' };
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
       <div className="flex justify-between items-center mb-6">
@@ -114,6 +121,52 @@ const GeographicDataDisplay = ({ analysisData, onUseData, onModifyData }) => {
         )}
       </div>
 
+      {/* Air Quality Section - Highlighted */}
+      {suggested_environmental_data?.air_quality_aod !== undefined && (
+        <div className="mt-6 border rounded-lg p-4 bg-sky-50 border-sky-200">
+          <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+            <div className="w-3 h-3 bg-sky-500 rounded-full mr-2"></div>
+            Air Quality Analysis
+          </h4>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">AOD Value:</span>
+                <span className="font-medium">{suggested_environmental_data.air_quality_aod.toFixed(3)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Air Quality Status:</span>
+                <span className={`px-2 py-1 rounded text-xs font-medium ${getAirQualityStatus(suggested_environmental_data.air_quality_aod).color} ${getAirQualityStatus(suggested_environmental_data.air_quality_aod).bgColor}`}>
+                  {getAirQualityStatus(suggested_environmental_data.air_quality_aod).status}
+                </span>
+              </div>
+            </div>
+            <div className="text-xs text-gray-600">
+              <p className="mb-1"><strong>AOD (Aerosol Optical Depth)</strong></p>
+              <p>Measures atmospheric pollution from satellite data. Lower values indicate cleaner air.</p>
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded"></div>
+                  <span>≤0.2: Good</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded"></div>
+                  <span>0.2-0.4: Moderate</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded"></div>
+                  <span>0.4-0.6: Poor</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded"></div>
+                  <span>0.6: Very Poor</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Suggested Environmental Data */}
       <div className="mt-6 border rounded-lg p-4 bg-blue-50">
         <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
@@ -150,38 +203,70 @@ const GeographicDataDisplay = ({ analysisData, onUseData, onModifyData }) => {
             </span>
           </div>
           <div className="space-y-1">
+            <span className="text-gray-600 block">Impervious Surface:</span>
+            <span className="font-medium text-red-600">
+              {formatArea(suggested_environmental_data.impervious_surface_area)}
+            </span>
+          </div>
+          <div className="space-y-1">
             <span className="text-gray-600 block">Estimated Dwelling Units:</span>
             <span className="font-medium">
               {suggested_environmental_data.dwelling_units?.toLocaleString() || 'N/A'}
             </span>
           </div>
+          {suggested_environmental_data.air_quality_aod !== undefined && (
+            <div className="space-y-1">
+              <span className="text-gray-600 block">Air Quality (AOD):</span>
+              <span className={`font-medium ${getAirQualityStatus(suggested_environmental_data.air_quality_aod).color}`}>
+                {suggested_environmental_data.air_quality_aod.toFixed(3)}
+              </span>
+            </div>
+          )}
         </div>
 
         {suggested_environmental_data.data_confidence && (
           <div className="mt-4 pt-3 border-t border-blue-200">
             <h5 className="font-medium text-gray-700 mb-2">Data Confidence:</h5>
-            <div className="flex space-x-4 text-xs">
+            <div className="flex flex-wrap gap-2 text-xs">
               <span className={`px-2 py-1 rounded ${
                 suggested_environmental_data.data_confidence.ndvi_quality === 'high' 
                   ? 'bg-green-100 text-green-800' 
-                  : 'bg-yellow-100 text-yellow-800'
+                  : suggested_environmental_data.data_confidence.ndvi_quality === 'medium'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : 'bg-red-100 text-red-800'
               }`}>
                 NDVI: {suggested_environmental_data.data_confidence.ndvi_quality}
               </span>
               <span className={`px-2 py-1 rounded ${
                 suggested_environmental_data.data_confidence.built_up_confidence === 'high' 
                   ? 'bg-green-100 text-green-800' 
-                  : 'bg-yellow-100 text-yellow-800'
+                  : suggested_environmental_data.data_confidence.built_up_confidence === 'medium'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : 'bg-red-100 text-red-800'
               }`}>
                 Built-up: {suggested_environmental_data.data_confidence.built_up_confidence}
               </span>
               <span className={`px-2 py-1 rounded ${
                 suggested_environmental_data.data_confidence.vegetation_confidence === 'high' 
                   ? 'bg-green-100 text-green-800' 
-                  : 'bg-yellow-100 text-yellow-800'
+                  : suggested_environmental_data.data_confidence.vegetation_confidence === 'medium'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : 'bg-red-100 text-red-800'
               }`}>
                 Vegetation: {suggested_environmental_data.data_confidence.vegetation_confidence}
               </span>
+              {/* Add air quality confidence if available */}
+              {suggested_environmental_data.data_confidence.air_quality_confidence && (
+                <span className={`px-2 py-1 rounded ${
+                  suggested_environmental_data.data_confidence.air_quality_confidence === 'high' 
+                    ? 'bg-green-100 text-green-800' 
+                    : suggested_environmental_data.data_confidence.air_quality_confidence === 'medium'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  Air Quality: {suggested_environmental_data.data_confidence.air_quality_confidence}
+                </span>
+              )}
             </div>
           </div>
         )}
