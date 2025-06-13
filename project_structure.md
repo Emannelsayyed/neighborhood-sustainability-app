@@ -12,9 +12,12 @@ neighborhood-sustainability-app/
 │   │   │   └── sustainability.py
 │   │   ├── services/
 │   │   │   ├── __init__.py
+│   │   │   ├── geographic.py
+│   │   │   ├── earth_engine.py
 │   │   │   └── calculator.py
 │   │   ├── routers/
 │   │   │   ├── __init__.py
+│   │   │   ├── geographic.py
 │   │   │   └── sustainability.py
 │   │   └── core/
 │   │       ├── __init__.py
@@ -32,8 +35,7 @@ neighborhood-sustainability-app/
 │   │   │   │   ├── GeographicDataDisplay.jsx
 │   │   │   │   ├── MapSelector.jsx
 │   │   │   │   ├── CalculatorForm.jsx
-│   │   │   │   ├── ResultsDisplay.jsx
-│   │   │   │   └── IndicatorInput.jsx
+│   │   │   │   └── ResultsDisplay.jsx
 │   │   │   ├── Layout/
 │   │   │   │   └── Layout.jsx
 │   │   │   └── Common/

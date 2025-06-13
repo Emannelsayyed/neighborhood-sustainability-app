@@ -15,7 +15,9 @@
     "lucide-react": "^0.454.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-leaflet": "^5.0.0"
+    "react-hook-form": "^7.57.0",
+    "react-leaflet": "^4.2.1",
+    "react-leaflet-draw": "^0.20.6"
   },
   "devDependencies": {
     "@rollup/rollup-win32-x64-msvc": "^4.41.1",

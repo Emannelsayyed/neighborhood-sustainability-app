@@ -20,7 +20,7 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(sustainability.router, prefix="/api", tags=["sustainability"])
+app.include_router(sustainability.router, prefix="/api/sustainability", tags=["sustainability"])
 app.include_router(geographic.router, prefix="/api/geographic", tags=["geographic"])
 
 @app.get("/")

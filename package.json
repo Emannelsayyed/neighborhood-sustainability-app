@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "react-hook-form": "^7.57.0",
+    "react-leaflet-draw": "^0.20.6"
+  }
+}

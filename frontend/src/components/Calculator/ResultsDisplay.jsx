@@ -1,18 +1,24 @@
 import React from 'react';
-import { TrendingUp, Leaf, Users, DollarSign, Award, BarChart3 } from 'lucide-react';
+import { CATEGORIES, GRADE_THRESHOLDS} from '../../utils/constants';
 
-const ResultsDisplay = ({ result }) => {
-  if (!result) return null;
+const ResultsDisplay = ({ results }) => {
+  if (!results) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <p className="text-gray-500">No results to display</p>
+      </div>
+    );
+  }
 
   const getGradeColor = (grade) => {
-    switch (grade) {
-      case 'A': return 'text-green-600 bg-green-100';
-      case 'B': return 'text-blue-600 bg-blue-100';
-      case 'C': return 'text-yellow-600 bg-yellow-100';
-      case 'D': return 'text-orange-600 bg-orange-100';
-      case 'F': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
+    const colors = {
+      'A': 'text-green-600 bg-green-100',
+      'B': 'text-blue-600 bg-blue-100', 
+      'C': 'text-yellow-600 bg-yellow-100',
+      'D': 'text-orange-600 bg-orange-100',
+      'F': 'text-red-600 bg-red-100'
+    };
+    return colors[grade] || 'text-gray-600 bg-gray-100';
   };
 
   const getScoreColor = (score) => {
@@ -23,183 +29,111 @@ const ResultsDisplay = ({ result }) => {
     return 'text-red-600';
   };
 
-  const getProgressBarColor = (score) => {
-    if (score >= 80) return 'bg-green-500';
-    if (score >= 70) return 'bg-blue-500';
-    if (score >= 60) return 'bg-yellow-500';
-    if (score >= 50) return 'bg-orange-500';
-    return 'bg-red-500';
-  };
+  const categoryScores = [
+    { name: 'Environmental', score: results.environmental_score, color: CATEGORIES.ENVIRONMENTAL.color },
+    { name: 'Social', score: results.social_score, color: CATEGORIES.SOCIAL.color },
+    { name: 'Economic', score: results.economic_score, color: CATEGORIES.ECONOMIC.color }
+  ];
 
-  const ProgressBar = ({ value, label, color }) => (
-    <div className="mb-4">
-      <div className="flex justify-between items-center mb-1">
-        <span className="text-sm font-medium text-gray-700">{label}</span>
-        <span className={`text-sm font-bold ${color}`}>{(value ?? 0).toFixed(1)}</span>
-      </div>
-      <div className="w-full bg-gray-200 rounded-full h-2">
-        <div
-          className={`h-2 rounded-full transition-all duration-500 ${getProgressBarColor(value)}`}
-          style={{ width: `${Math.min(value, 100)}%` }}
-        ></div>
+  const environmentalIndicators = [
+    { key: 'green_percentage_area', label: 'Green Area %', value: results.indicators.green_percentage_area, normalized: results.normalized.gpa_normalized },
+    { key: 'water_percentage_area', label: 'Water Area %', value: results.indicators.water_percentage_area, normalized: results.normalized.wpa_normalized },
+    { key: 'air_quality', label: 'Air Quality', value: results.indicators.air_quality, normalized: results.normalized.aq_normalized },
+    { key: 'land_surface_temperature', label: 'Land Surface Temp', value: results.indicators.land_surface_temperature, normalized: results.normalized.lst_normalized },
+    { key: 'ecological_quality_index', label: 'Ecological Quality', value: results.indicators.ecological_quality_index, normalized: results.normalized.eqi_normalized }
+  ];
+
+  const socialIndicators = [
+    { key: 'crime_rate', label: 'Crime Rate', value: results.indicators.crime_rate, normalized: results.normalized.cr_normalized },
+    { key: 'education_level', label: 'Education Level', value: results.indicators.education_level, normalized: results.normalized.el_normalized },
+    { key: 'access_to_transit', label: 'Transit Access', value: results.indicators.access_to_transit, normalized: results.normalized.apt_normalized },
+    { key: 'access_to_schools', label: 'School Access', value: results.indicators.access_to_schools, normalized: results.normalized.as_normalized },
+    { key: 'access_to_hospitals', label: 'Hospital Access', value: results.indicators.access_to_hospitals, normalized: results.normalized.ah_normalized },
+    { key: 'access_to_fire_stations', label: 'Fire Station Access', value: results.indicators.access_to_fire_stations, normalized: results.normalized.af_normalized },
+    { key: 'access_to_police', label: 'Police Access', value: results.indicators.access_to_police, normalized: results.normalized.ap_normalized },
+    { key: 'walkability', label: 'Walkability', value: results.indicators.walkability, normalized: results.normalized.w_normalized }
+  ];
+
+  const economicIndicators = [
+    { key: 'median_household_income', label: 'Median Income', value: results.indicators.median_household_income, normalized: results.normalized.mhi_normalized },
+    { key: 'unemployment_rate', label: 'Unemployment Rate', value: results.indicators.unemployment_rate, normalized: results.normalized.ur_normalized },
+    { key: 'housing_affordability', label: 'Housing Affordability', value: results.indicators.housing_affordability, normalized: results.normalized.ha_normalized }
+  ];
+
+  const renderIndicatorSection = (title, indicators, color) => (
+    <div className="bg-gray-50 p-4 rounded-lg">
+      <h4 className="font-medium text-gray-800 mb-3" style={{ color }}>{title}</h4>
+      <div className="space-y-2">
+        {indicators.map(({ key, label, value, normalized }) => (
+          <div key={key} className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">{label}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium w-16 text-right">
+                {typeof value === 'number' ? value.toFixed(2) : value}
+              </span>
+              <div className="w-12 bg-gray-200 rounded-full h-2">
+                <div 
+                  className="h-2 rounded-full"
+                  style={{ 
+                    width: `${Math.max(0, Math.min(100, normalized * 100))}%`,
+                    backgroundColor: color
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 
-  const indicatorsList = [
-    { key: 'green_space_percentage', label: 'Green Space', unit: '%', category: 'env' },
-    { key: 'average_residential_density', label: 'Residential Density', unit: 'DU/acre', category: 'env' },
-    { key: 'land_use_diversity', label: 'Land Use Diversity', unit: 'index', category: 'env' },
-    { key: 'impervious_surface_percentage', label: 'Impervious Surface', unit: '%', category: 'env' },
-    { key: 'air_quality_aod', label: 'Air Quality (AOD)', unit: 'AOD', category: 'env' },
-    { key: 'crime_rate', label: 'Crime Rate', unit: 'per 1,000', category: 'social' },
-    { key: 'education_level', label: 'Education Level', unit: '%', category: 'social' },
-    { key: 'access_to_transit', label: 'Transit Access', unit: '%', category: 'social' },
-    { key: 'access_to_schools', label: 'School Access', unit: '%', category: 'social' },
-    { key: 'access_to_hospitals', label: 'Hospital Access', unit: '%', category: 'social' },
-    { key: 'access_to_fire_stations', label: 'Fire Station Access', unit: '%', category: 'social' },
-    { key: 'access_to_police', label: 'Police Access', unit: '%', category: 'social' },
-    { key: 'walkability', label: 'Walkability', unit: 'intersections/sq mile', category: 'social' },
-    { key: 'median_household_income', label: 'Median Income', unit: '$', category: 'econ' },
-    { key: 'unemployment_rate', label: 'Unemployment Rate', unit: '%', category: 'econ' },
-    { key: 'housing_affordability', label: 'Housing Affordability', unit: '%', category: 'econ' }
-  ];
-
   return (
     <div className="space-y-6">
-      {/* Overall Score */}
-      <div className="bg-white rounded-lg shadow-lg p-6 text-center">
-        <div className="flex items-center justify-center mb-4">
-          <Award className="w-8 h-8 text-yellow-500 mr-2" />
-          <h2 className="text-2xl font-bold text-gray-800">Sustainability Index</h2>
-        </div>
-        
-        <div className="mb-4">
-          <div className={`text-5xl font-bold mb-2 ${getScoreColor(result.sustainability_index)}`}>
-            {(result.sustainability_index ?? 0).toFixed(1)}
+      <div className="bg-white p-6 rounded-lg shadow-md text-center">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Sustainability Assessment</h2>
+        <div className="flex justify-center items-center gap-6 mb-4">
+          <div>
+            <div className={`text-6xl font-bold ${getScoreColor(results.sustainability_index)}`}>
+              {results.sustainability_index.toFixed(1)}
+            </div>
+            <div className="text-gray-600">Overall Score</div>
           </div>
-          <div className={`inline-flex items-center px-4 py-2 rounded-full text-xl font-bold ${getGradeColor(result.grade)}`}>
-            Grade: {result.grade}
+          <div className={`px-6 py-3 rounded-full text-2xl font-bold ${getGradeColor(results.grade)}`}>
+            Grade {results.grade}
           </div>
         </div>
-        
-        <p className="text-gray-600 max-w-2xl mx-auto leading-relaxed">
-          {result.interpretation}
-        </p>
+        <p className="text-gray-700 max-w-2xl mx-auto">{results.interpretation}</p>
       </div>
 
-      {/* Category Scores */}
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="flex items-center mb-4">
-            <Leaf className="w-6 h-6 text-green-600 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-800">Environmental</h3>
-          </div>
-          <div className={`text-3xl font-bold mb-2 ${getScoreColor(result.environmental_score)}`}>
-            {(result.environmental_score ?? 0).toFixed(1)}
-          </div>
-          <ProgressBar 
-            value={result.environmental_score} 
-            label="Environmental Score" 
-            color={getScoreColor(result.environmental_score)}
-          />
-        </div>
-
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="flex items-center mb-4">
-            <Users className="w-6 h-6 text-blue-600 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-800">Social</h3>
-          </div>
-          <div className={`text-3xl font-bold mb-2 ${getScoreColor(result.social_score)}`}>
-            {(result.social_score ?? 0).toFixed(1)}
-          </div>
-          <ProgressBar 
-            value={result.social_score} 
-            label="Social Score" 
-            color={getScoreColor(result.social_score)}
-          />
-        </div>
-
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="flex items-center mb-4">
-            <DollarSign className="w-6 h-6 text-purple-600 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-800">Economic</h3>
-          </div>
-          <div className={`text-3xl font-bold mb-2 ${getScoreColor(result.economic_score)}`}>
-            {(result.economic_score ?? 0).toFixed(1)}
-          </div>
-          <ProgressBar 
-            value={result.economic_score} 
-            label="Economic Score" 
-            color={getScoreColor(result.economic_score)}
-          />
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Category Breakdown</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {categoryScores.map(({ name, score, color }) => (
+            <div key={name} className="text-center p-4 border rounded-lg">
+              <div className="text-3xl font-bold mb-2" style={{ color }}>
+                {score.toFixed(1)}
+              </div>
+              <div className="text-gray-600 font-medium">{name}</div>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div 
+                  className="h-2 rounded-full"
+                  style={{ 
+                    width: `${score}%`,
+                    backgroundColor: color
+                  }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Detailed Indicators */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <div className="flex items-center mb-6">
-          <BarChart3 className="w-6 h-6 text-gray-600 mr-2" />
-          <h3 className="text-xl font-semibold text-gray-800">Detailed Indicators</h3>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Environmental Indicators */}
-          <div>
-            <h4 className="font-semibold text-green-700 mb-3 flex items-center">
-              <Leaf className="w-4 h-4 mr-1" />
-              Environmental
-            </h4>
-            <div className="space-y-3">
-              {indicatorsList.filter(ind => ind.category === 'env').map(indicator => (
-                <div key={indicator.key} className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">{indicator.label}:</span>
-                  <span className="font-medium">
-                    {(result.indicators[indicator.key] ?? 0).toFixed(1)} {indicator.unit}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Social Indicators */}
-          <div>
-            <h4 className="font-semibold text-blue-700 mb-3 flex items-center">
-              <Users className="w-4 h-4 mr-1" />
-              Social
-            </h4>
-            <div className="space-y-3">
-              {indicatorsList.filter(ind => ind.category === 'social').map(indicator => (
-                <div key={indicator.key} className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">{indicator.label}:</span>
-                  <span className="font-medium">
-                    {(result.indicators[indicator.key] ?? 0).toFixed(1)} {indicator.unit}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Economic Indicators */}
-          <div>
-            <h4 className="font-semibold text-purple-700 mb-3 flex items-center">
-              <DollarSign className="w-4 h-4 mr-1" />
-              Economic
-            </h4>
-            <div className="space-y-3">
-              {indicatorsList.filter(ind => ind.category === 'econ').map(indicator => (
-                <div key={indicator.key} className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">{indicator.label}:</span>
-                  <span className="font-medium">
-                    {indicator.key === 'median_household_income' 
-                      ? '$' + (result.indicators[indicator.key] ?? 0).toLocaleString()
-                      : (result.indicators[indicator.key] ?? 0).toFixed(1) + ' ' + indicator.unit
-                    }
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Detailed Indicators</h3>
+        <div className="space-y-4">
+          {renderIndicatorSection('Environmental Indicators', environmentalIndicators, CATEGORIES.ENVIRONMENTAL.color)}
+          {renderIndicatorSection('Social Indicators', socialIndicators, CATEGORIES.SOCIAL.color)}
+          {renderIndicatorSection('Economic Indicators', economicIndicators, CATEGORIES.ECONOMIC.color)}
         </div>
       </div>
     </div>

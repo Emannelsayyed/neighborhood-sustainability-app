@@ -10,21 +10,43 @@ class SustainabilityCalculator:
     
     # Normalization thresholds
     THRESHOLDS = {
-        'gsp_max': 50,  # 50% green space as benchmark
-        'ard_max': 12,  # 12 dwelling units per acre
-        'lud_max_types': 4,  # 4 land use types for max diversity
-        'aq_max': 1.0,  # AOD of 1.0 as high pollution threshold
-        'cr_max': 100,  # 100 crimes per 1000 as high threshold
-        'w_max': 140,  # 140 intersections per sq mile
+        # Environmental thresholds
+        'gpa_max': 100,  # 100% green area as benchmark
+        'wpa_max': 100,  # 100% water area as benchmark
+        'aq_max': 1.0,   # AOD of 1.0 as high pollution threshold
+        'lst_min': 15,   # 15°C as minimum LST
+        'lst_max': 35,   # 35°C as maximum LST
+        'ndvi_min': 0,   # NDVI minimum
+        'ndvi_max': 1,   # NDVI maximum
+        'wet_min': -0.5, # Wetness minimum
+        'wet_max': 0.5,  # Wetness maximum
+        'ndbsi_min': 0,  # NDBSI minimum
+        'ndbsi_max': 1,  # NDBSI maximum
+        'pm25_max': 100, # PM2.5 maximum (µg/m³)
+        'pc1_min': -1,   # PC1 minimum (assumed)
+        'pc1_max': 1,    # PC1 maximum (assumed)
+        
+        # Social thresholds
+        'cr_max': 100,   # 100 crimes per 1000 as high threshold
+        'travel_time_max': 30,  # 30 minutes as maximum acceptable travel time
+        'w_max': 140,    # 140 intersections per sq mile
+        
+        # Economic thresholds
         'mhi_max': 100000,  # $100,000 as high income benchmark
-        'ur_max': 20,  # 20% unemployment as high threshold
+        'ur_max': 100,      # 100% unemployment as maximum
     }
         
     # Weights for final aggregation
     WEIGHTS = {
-        'environmental': 0.40,
-        'social': 0.30,
-        'economic': 0.30
+        'environmental': {
+            'gpa': 0.08,  # 8%
+            'wpa': 0.06,  # 6%
+            'aq': 0.08,   # 8%
+            'lst': 0.06,  # 6%
+            'eqi': 0.12   # 12%
+        },
+        'social': 0.30,     # 30% total, divided equally among 8 indicators
+        'economic': 0.30    # 30% total, divided equally among 3 indicators
     }
     
     @staticmethod
@@ -35,48 +57,74 @@ class SustainabilityCalculator:
         eco = data.economic
         
         # Environmental indicators
-        gsp = (env.green_space_area / env.total_area) * 100
+        # 1. Green Percentage Area (GPA)
+        gpa = (env.green_area / env.total_area) * 100
         
-        # Convert area to acres for density calculation (1 m² = 0.000247105 acres)
-        total_acres = env.total_area * 0.000247105
-        ard = env.dwelling_units / total_acres if total_acres > 0 else 0
+        # 2. Water Percentage Area (WPA)
+        wpa = (env.water_area / env.total_area) * 100
         
-        # Land use diversity (Shannon Index)
-        areas = [env.residential_area, env.commercial_area, env.industrial_area, env.green_space_area]
-        total_developed = sum(areas)
-        if total_developed > 0:
-            proportions = [area / total_developed for area in areas if area > 0]
-            lud = -sum(p * math.log(p) for p in proportions if p > 0)
-        else:
-            lud = 0
-        
-        isp = (env.impervious_surface_area / env.total_area) * 100
+        # 3. Air Quality (AQ) - using AOD directly
         aq = env.air_quality_aod
+        
+        # 4. Land Surface Temperature (LST)
+        lst = env.land_surface_temperature
+        
+        # 5. Ecological Quality Index (EQI) - PCA calculation
+        # Normalize components first
+        ndvi_norm = (env.mean_ndvi - SustainabilityCalculator.THRESHOLDS['ndvi_min']) / \
+                   (SustainabilityCalculator.THRESHOLDS['ndvi_max'] - SustainabilityCalculator.THRESHOLDS['ndvi_min'])
+        
+        wet_norm = (env.tasseled_cap_wetness - SustainabilityCalculator.THRESHOLDS['wet_min']) / \
+                  (SustainabilityCalculator.THRESHOLDS['wet_max'] - SustainabilityCalculator.THRESHOLDS['wet_min'])
+        
+        heat_norm = 1 - (env.mean_lst_for_eqi - SustainabilityCalculator.THRESHOLDS['lst_min']) / \
+                   (SustainabilityCalculator.THRESHOLDS['lst_max'] - SustainabilityCalculator.THRESHOLDS['lst_min'])
+        
+        ndbsi_norm = 1 - (env.ndbsi - SustainabilityCalculator.THRESHOLDS['ndbsi_min']) / \
+                    (SustainabilityCalculator.THRESHOLDS['ndbsi_max'] - SustainabilityCalculator.THRESHOLDS['ndbsi_min'])
+        
+        pm25_norm = 1 - (env.pm25 / SustainabilityCalculator.THRESHOLDS['pm25_max'])
+        
+        # Simple PCA simulation - using weighted average with assumed loadings
+        # In practice, you would perform actual PCA
+        pca_loadings = [0.4, 0.3, 0.2, 0.1, 0.1]  # Example loadings
+        pc1 = (pca_loadings[0] * ndvi_norm + 
+               pca_loadings[1] * wet_norm + 
+               pca_loadings[2] * heat_norm + 
+               pca_loadings[3] * ndbsi_norm + 
+               pca_loadings[4] * pm25_norm)
+        
+        # Normalize PC1 to get EQI
+        eqi = (pc1 - SustainabilityCalculator.THRESHOLDS['pc1_min']) / \
+              (SustainabilityCalculator.THRESHOLDS['pc1_max'] - SustainabilityCalculator.THRESHOLDS['pc1_min'])
+        eqi = max(0, min(1, eqi)) * 100  # Convert to percentage and clip
         
         # Social indicators
         cr = (soc.total_crimes / soc.total_population) * 1000
         el = (soc.adults_with_degree / soc.total_adult_population) * 100
-        apt = (soc.residents_near_transit / soc.total_population) * 100
-        as_score = (soc.residents_near_schools / soc.total_population) * 100
-        ah = (soc.residents_near_hospitals / soc.total_population) * 100
-        af = (soc.residents_near_fire_stations / soc.total_population) * 100
-        ap = (soc.residents_near_police / soc.total_population) * 100
         
-        # Convert area to square miles for walkability (1 m² = 3.861e-7 sq miles)
+        # Access indicators now use travel time (lower is better)
+        apt = soc.avg_time_to_transit
+        as_score = soc.avg_time_to_schools
+        ah = soc.avg_time_to_hospitals
+        af = soc.avg_time_to_fire_stations
+        ap = soc.avg_time_to_police
+        
+        # Walkability remains the same
         total_sq_miles = env.total_area * 3.861e-7
         w = soc.street_intersections / total_sq_miles if total_sq_miles > 0 else 0
         
-        # Economic indicators
+        # Economic indicators (unchanged)
         mhi = eco.median_household_income
         ur = (eco.unemployed_count / eco.labor_force) * 100
         ha = (eco.affordable_housing_units / eco.total_housing_units) * 100
         
         return IndicatorResults(
-            green_space_percentage=gsp,
-            average_residential_density=ard,
-            land_use_diversity=lud,
-            impervious_surface_percentage=isp,
+            green_percentage_area=gpa,
+            water_percentage_area=wpa,
             air_quality=aq,
+            land_surface_temperature=lst,
+            ecological_quality_index=eqi,
             crime_rate=cr,
             education_level=el,
             access_to_transit=apt,
@@ -94,34 +142,38 @@ class SustainabilityCalculator:
     def normalize_indicators(indicators: IndicatorResults) -> NormalizedResults:
         """Normalize indicators to 0-1 scale"""
         
-        # Environmental (higher is better except ISP)
-        gsp_norm = min(1.0, indicators.green_space_percentage / SustainabilityCalculator.THRESHOLDS['gsp_max'])
-        ard_norm = min(1.0, indicators.average_residential_density / SustainabilityCalculator.THRESHOLDS['ard_max'])
-        lud_norm = indicators.land_use_diversity / math.log(SustainabilityCalculator.THRESHOLDS['lud_max_types'])
-        isp_norm = max(0.0, 1.0 - indicators.impervious_surface_percentage / 100)  # Lower is better
+        # Environmental indicators (higher is better except AQ and LST)
+        gpa_norm = indicators.green_percentage_area / 100
+        wpa_norm = indicators.water_percentage_area / 100
         aq_norm = max(0.0, 1.0 - indicators.air_quality / SustainabilityCalculator.THRESHOLDS['aq_max'])
+        lst_norm = max(0.0, 1.0 - (indicators.land_surface_temperature - SustainabilityCalculator.THRESHOLDS['lst_min']) / 
+                      (SustainabilityCalculator.THRESHOLDS['lst_max'] - SustainabilityCalculator.THRESHOLDS['lst_min']))
+        eqi_norm = indicators.ecological_quality_index / 100
         
-        # Social (higher is better except crime rate)
-        cr_norm = max(0.0, 1.0 - indicators.crime_rate / SustainabilityCalculator.THRESHOLDS['cr_max'])  # Lower is better
+        # Social indicators
+        cr_norm = max(0.0, 1.0 - indicators.crime_rate / SustainabilityCalculator.THRESHOLDS['cr_max'])
         el_norm = indicators.education_level / 100
-        apt_norm = indicators.access_to_transit / 100
-        as_norm = indicators.access_to_schools / 100
-        ah_norm = indicators.access_to_hospitals / 100
-        af_norm = indicators.access_to_fire_stations / 100
-        ap_norm = indicators.access_to_police / 100
+        
+        # Access indicators - travel time (lower is better)
+        apt_norm = max(0.0, 1.0 - indicators.access_to_transit / SustainabilityCalculator.THRESHOLDS['travel_time_max'])
+        as_norm = max(0.0, 1.0 - indicators.access_to_schools / SustainabilityCalculator.THRESHOLDS['travel_time_max'])
+        ah_norm = max(0.0, 1.0 - indicators.access_to_hospitals / SustainabilityCalculator.THRESHOLDS['travel_time_max'])
+        af_norm = max(0.0, 1.0 - indicators.access_to_fire_stations / SustainabilityCalculator.THRESHOLDS['travel_time_max'])
+        ap_norm = max(0.0, 1.0 - indicators.access_to_police / SustainabilityCalculator.THRESHOLDS['travel_time_max'])
+        
         w_norm = min(1.0, indicators.walkability / SustainabilityCalculator.THRESHOLDS['w_max'])
         
-        # Economic (higher is better except unemployment)
+        # Economic indicators
         mhi_norm = min(1.0, indicators.median_household_income / SustainabilityCalculator.THRESHOLDS['mhi_max'])
-        ur_norm = max(0.0, 1.0 - indicators.unemployment_rate / SustainabilityCalculator.THRESHOLDS['ur_max'])  # Lower is better
+        ur_norm = max(0.0, 1.0 - indicators.unemployment_rate / SustainabilityCalculator.THRESHOLDS['ur_max'])
         ha_norm = indicators.housing_affordability / 100
         
         return NormalizedResults(
-            gsp_normalized=gsp_norm,
-            ard_normalized=ard_norm,
-            lud_normalized=lud_norm,
-            isp_normalized=isp_norm,
+            gpa_normalized=gpa_norm,
+            wpa_normalized=wpa_norm,
             aq_normalized=aq_norm,
+            lst_normalized=lst_norm,
+            eqi_normalized=eqi_norm,
             cr_normalized=cr_norm,
             el_normalized=el_norm,
             apt_normalized=apt_norm,
@@ -137,18 +189,18 @@ class SustainabilityCalculator:
     
     @staticmethod
     def calculate_category_scores(normalized: NormalizedResults) -> Tuple[float, float, float]:
-        """Calculate category scores (0-100)"""
+        """Calculate category scores (0-100) using new weighting scheme"""
         
-        # Environmental score (average of 5 indicators)
+        # Environmental score using specific weights
         env_score = (
-            normalized.gsp_normalized + 
-            normalized.ard_normalized + 
-            normalized.lud_normalized + 
-            normalized.isp_normalized +
-            normalized.aq_normalized
-        ) / 5 * 100
+            SustainabilityCalculator.WEIGHTS['environmental']['gpa'] * normalized.gpa_normalized +
+            SustainabilityCalculator.WEIGHTS['environmental']['wpa'] * normalized.wpa_normalized +
+            SustainabilityCalculator.WEIGHTS['environmental']['aq'] * normalized.aq_normalized +
+            SustainabilityCalculator.WEIGHTS['environmental']['lst'] * normalized.lst_normalized +
+            SustainabilityCalculator.WEIGHTS['environmental']['eqi'] * normalized.eqi_normalized
+        ) * 100
         
-        # Social score (average of 8 indicators)
+        # Social score (equal weights for 8 indicators)
         soc_score = (
             normalized.cr_normalized + 
             normalized.el_normalized + 
@@ -161,7 +213,7 @@ class SustainabilityCalculator:
             
         ) / 8 * 100
         
-        # Economic score (average of 3 indicators)
+        # Economic score (equal weights for 3 indicators)
         eco_score = (
             normalized.mhi_normalized + 
             normalized.ur_normalized + 
@@ -174,9 +226,9 @@ class SustainabilityCalculator:
     def calculate_final_index(env_score: float, soc_score: float, eco_score: float) -> float:
         """Calculate weighted final sustainability index"""
         return (
-            SustainabilityCalculator.WEIGHTS['environmental'] * env_score +
-            SustainabilityCalculator.WEIGHTS['social'] * soc_score +
-            SustainabilityCalculator.WEIGHTS['economic'] * eco_score
+            0.40 * env_score +  # Environmental: 40%
+            0.30 * soc_score +  # Social: 30%
+            0.30 * eco_score    # Economic: 30%
         )
     
     @staticmethod

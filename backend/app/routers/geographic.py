@@ -1,148 +1,128 @@
 # app/routers/geographic.py
 from fastapi import APIRouter, HTTPException
-from app.models.geographic import (
-    GeographicAnalysisRequest, 
-    GeographicAnalysisResponse,
-    EnhancedSustainabilityInput,
-    LandCoverAnalysis,
-    SatelliteData,
-    GeographicBounds
-)
-from app.services.earth_engine import EarthEngineService
-from app.services.calculator import SustainabilityCalculator
-from typing import Dict, Any, Optional
+from pydantic import BaseModel, Field
+from typing import List, Dict, Any
+from app.services.geographic import GeographicService
 import logging
 
 logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
-@router.post("/analyze-area", response_model=GeographicAnalysisResponse)
-async def analyze_geographic_area(request: GeographicAnalysisRequest):
+class PolygonCoordinates(BaseModel):
+    coordinates: List[List[float]] = Field(..., description="Polygon coordinates as [[lon, lat], [lon, lat], ...]")
+
+class SatelliteImageRequest(BaseModel):
+    coordinates: List[List[float]] = Field(..., description="Polygon coordinates")
+    width: int = Field(default=800, ge=400, le=1200, description="Image width in pixels")
+    height: int = Field(default=600, ge=300, le=900, description="Image height in pixels")
+
+class EnvironmentalIndicatorsResponse(BaseModel):
+    green_area: float
+    total_area: float
+    water_area: float
+    air_quality_aod: float
+    land_surface_temperature: float
+    mean_ndvi: float
+    tasseled_cap_wetness: float
+    mean_lst_for_eqi: float
+    ndbsi: float
+    pm25: float
+
+@router.post("/satellite-image")
+async def get_satellite_image(request: SatelliteImageRequest):
     """
-    Analyze a geographic area using Google Earth Engine satellite data.
+    Get satellite image URL for a given polygon area.
     
-    Returns land cover analysis and satellite-derived environmental indicators.
+    Returns a URL to a satellite image of the specified area.
     """
     try:
-        # Initialize Earth Engine if not already done
-        EarthEngineService.initialize()
-        
-        # Analyze land cover
-        land_cover = EarthEngineService.analyze_land_cover(request.bounds)
-        
-        # Analyze satellite data if requested
-        satellite_data = None
-        if request.include_satellite_data:
-            satellite_data = EarthEngineService.analyze_satellite_data(request.bounds)
-        
-        # Generate suggested environmental data based on analysis
-        suggested_data = _generate_suggested_environmental_data(land_cover, satellite_data, request.bounds)
-        
-        return GeographicAnalysisResponse(
-            bounds=request.bounds,
-            land_cover=land_cover,
-            satellite_data=satellite_data,
-            suggested_environmental_data=suggested_data
+        image_url = GeographicService.get_satellite_image_url(
+            coordinates=request.coordinates,
+            width=request.width,
+            height=request.height
         )
         
-    except Exception as e:
-        logger.error(f"Error analyzing geographic area: {e}")
-        raise HTTPException(status_code=500, detail=f"Analysis error: {str(e)}")
-
-@router.post("/calculate-with-map", response_model=dict)
-async def calculate_sustainability_with_map_data(data: EnhancedSustainabilityInput):
-    """
-    Calculate sustainability index with enhanced geographic data from map selection.
-    
-    Combines user input with satellite-derived environmental indicators.
-    """
-    try:
-        # If geographic data is provided, use it to enhance environmental indicators
-        if data.geographic_data:
-            # Update environmental indicators with satellite data
-            land_cover = data.geographic_data.land_cover
-            
-            # Override certain environmental fields with satellite-derived data
-            data.environmental.total_area = land_cover.total_area
-            data.environmental.green_space_area = land_cover.green_space_area
-            data.environmental.impervious_surface_area = land_cover.impervious_surface_area
-            
-            # Estimate other areas if not provided by user
-            if data.environmental.residential_area == 0:
-                data.environmental.residential_area = land_cover.urban_area * 0.6  # 60% of urban is residential
-            if data.environmental.commercial_area == 0:
-                data.environmental.commercial_area = land_cover.urban_area * 0.3   # 30% commercial
-            if data.environmental.industrial_area == 0:
-                data.environmental.industrial_area = land_cover.urban_area * 0.1   # 10% industrial
-        
-        # Calculate sustainability index using the enhanced data
-        result = SustainabilityCalculator.calculate_sustainability_index(data)
-        
-        # Add geographic context to result
-        response = result.dict()
-        if data.geographic_data:
-            response['geographic_context'] = {
-                'area_analyzed': data.geographic_data.land_cover.total_area,
-                'satellite_data_included': data.geographic_data.satellite_data is not None,
-                'analysis_bounds': data.geographic_data.bounds.dict()
+        return {
+            "image_url": image_url,
+            "coordinates": request.coordinates,
+            "dimensions": {
+                "width": request.width,
+                "height": request.height
             }
-        
-        return response
+        }
         
     except Exception as e:
-        logger.error(f"Error calculating sustainability with map data: {e}")
-        raise HTTPException(status_code=400, detail=f"Calculation error: {str(e)}")
+        logger.error(f"Error getting satellite image: {e}")
+        raise HTTPException(status_code=400, detail=f"Error getting satellite image: {str(e)}")
 
-@router.get("/gee-status")
-async def check_earth_engine_status():
+@router.post("/area", response_model=Dict[str, float])
+async def calculate_area(polygon: PolygonCoordinates):
     """
-    Check Google Earth Engine service status.
+    Calculate the area of a polygon in square meters.
+    
+    Returns the area in square meters and square kilometers.
     """
     try:
-        EarthEngineService.initialize()
+        area_sqm = GeographicService.calculate_area_sqm(polygon.coordinates)
+        area_sqkm = area_sqm / 1_000_000
+        
         return {
-            "status": "available",
-            "message": "Google Earth Engine is initialized and ready"
+            "area_sqm": area_sqm,
+            "area_sqkm": area_sqkm
         }
+        
     except Exception as e:
-        return {
-            "status": "unavailable", 
-            "message": f"Google Earth Engine error: {str(e)}"
-        }
+        logger.error(f"Error calculating area: {e}")
+        raise HTTPException(status_code=400, detail=f"Error calculating area: {str(e)}")
 
-def _generate_suggested_environmental_data(land_cover: LandCoverAnalysis, satellite_data: Optional[SatelliteData], bounds: GeographicBounds) -> Dict[str, Any]:
-    """Generate suggested environmental indicator values based on satellite analysis"""
+@router.post("/environmental-indicators", response_model=EnvironmentalIndicatorsResponse)
+async def extract_environmental_indicators(polygon: PolygonCoordinates):
+    """
+    Extract all environmental indicators from satellite imagery for the given polygon.
     
-    suggestions = {
-        "total_area": land_cover.total_area,
-        "green_space_area": land_cover.green_space_area,
-        "impervious_surface_area": land_cover.impervious_surface_area,
-        "residential_area": land_cover.urban_area * 0.6,  # Estimate 60% of urban as residential
-        "commercial_area": land_cover.urban_area * 0.3,   # Estimate 30% as commercial
-        "industrial_area": land_cover.urban_area * 0.1,   # Estimate 10% as industrial
-    }
-    
-    # Add dwelling units estimation based on area and typical density
-    if land_cover.urban_area > 0:
-        # Assume average of 25 dwelling units per hectare in urban areas
-        urban_hectares = land_cover.urban_area / 10000  # Convert m² to hectares
-        suggestions["dwelling_units"] = int(urban_hectares * 25)
-    else:
-        suggestions["dwelling_units"] = 100  # Default minimum
-
-    # Add air quality data using Earth Engine
+    This endpoint processes satellite imagery to automatically extract:
+    - Green area (NDVI > 0.2)
+    - Water area (MNDWI > 0)
+    - Air quality (AOD from Sentinel-5P)
+    - Land surface temperature (MODIS)
+    - EQI components (NDVI, Tasseled Cap Wetness, LST, NDBSI, PM2.5)
+    """
     try:
-        aod_value = EarthEngineService.analyze_air_quality(bounds)
-        suggestions["air_quality_aod"] = aod_value
-    except:
-        suggestions["air_quality_aod"] = 0.3  # Default moderate air quality    
+        logger.info(f"Extracting environmental indicators for polygon: {polygon.coordinates}")
+        
+        indicators = GeographicService.extract_all_environmental_indicators(polygon.coordinates)
+        
+        return EnvironmentalIndicatorsResponse(**indicators)
+        
+    except Exception as e:
+        logger.error(f"Error extracting environmental indicators: {e}")
+        raise HTTPException(status_code=400, detail=f"Error extracting environmental indicators: {str(e)}")
+
+@router.get("/test-connection")
+async def test_earth_engine_connection():
+    """
+    Test Google Earth Engine connection.
     
-    # Add confidence scores based on satellite data quality
-    if satellite_data:
-        suggestions["data_confidence"] = {
-            "ndvi_quality": "high" if satellite_data.ndvi_std < 0.2 else "medium",
-            "built_up_confidence": "high" if satellite_data.built_up_percentage > 10 else "low",
-            "vegetation_confidence": "high" if satellite_data.vegetation_percentage > 15 else "medium"
+    Returns connection status and basic information.
+    """
+    try:
+        GeographicService.initialize_earth_engine()
+        
+        # Simple test to verify connection
+        import ee
+        test_result = ee.Number(1).add(1).getInfo()
+        
+        return {
+            "status": "connected",
+            "message": "Google Earth Engine connection successful",
+            "test_result": test_result
         }
-    
-    return suggestions
+        
+    except Exception as e:
+        logger.error(f"Earth Engine connection test failed: {e}")
+        return {
+            "status": "error",
+            "message": f"Google Earth Engine connection failed: {str(e)}",
+            "test_result": None 
+        }

@@ -1,5 +1,13 @@
+# app/routers/sustainability.py
 from fastapi import APIRouter, HTTPException
-from app.models.sustainability import SustainabilityInput, SustainabilityResult, IndicatorDefinition
+from app.models.sustainability import (
+    SustainabilityInput, 
+    SustainabilityResult, 
+    IndicatorDefinition, 
+    GeographicSustainabilityInput, 
+    EnvironmentalIndicators  
+)
+from app.services.geographic import GeographicService
 from app.services.calculator import SustainabilityCalculator
 from typing import List
 
@@ -41,25 +49,36 @@ async def get_example_input():
     try:
         example = {
             "environmental": {
-                "green_space_area": 250000,  # 250,000 m²
-                "total_area": 1000000,       # 1,000,000 m² (1 km²)
-                "dwelling_units": 2470,      # 2,470 units
-                "residential_area": 400000,  # 400,000 m²
-                "commercial_area": 300000,   # 300,000 m²
-                "industrial_area": 100000,   # 100,000 m²
-                "impervious_surface_area": 300000,  # 300,000 m²
-                "air_quality_aod": 0.3
+                # Green Percentage Area
+                "green_area": 250000,      # 250,000 m² with NDVI > 0.2
+                "total_area": 1000000,     # 1,000,000 m² (1 km²)
+                
+                # Water Percentage Area
+                "water_area": 50000,       # 50,000 m² with MNDWI > 0
+                
+                # Air Quality
+                "air_quality_aod": 0.3,    # AOD from Sentinel-5P TROPOMI
+                
+                # Land Surface Temperature
+                "land_surface_temperature": 25.0,  # 25°C from MODIS
+                
+                # EQI components
+                "mean_ndvi": 0.5,          # Mean NDVI
+                "tasseled_cap_wetness": 0.3,  # Tasseled Cap Wetness
+                "mean_lst_for_eqi": 25.0,  # Mean LST for EQI
+                "ndbsi": 0.4,              # NDBSI
+                "pm25": 20.0               # PM2.5 concentration
             },
             "social": {
                 "total_population": 10000,
                 "total_crimes": 50,
                 "adults_with_degree": 3000,
                 "total_adult_population": 8000,
-                "residents_near_transit": 8500,
-                "residents_near_schools": 8000,
-                "residents_near_hospitals": 9000,
-                "residents_near_fire_stations": 9500,
-                "residents_near_police": 9200,
+                "avg_time_to_transit": 5.0,        # 5 minutes average
+                "avg_time_to_schools": 8.0,        # 8 minutes average
+                "avg_time_to_hospitals": 12.0,     # 12 minutes average
+                "avg_time_to_fire_stations": 6.0,  # 6 minutes average
+                "avg_time_to_police": 10.0,        # 10 minutes average
                 "street_intersections": 120
             },
             "economic": {
@@ -90,21 +109,21 @@ async def get_category_weights():
             },
             "indicator_weights": {
                 "environmental": {
-                    "green_space_percentage": 10,
-                    "average_residential_density": 7,
-                    "land_use_diversity": 7,
-                    "impervious_surface_percentage": 8,
-                    "air_quality": 8
+                    "green_percentage_area": 8,    # 8%
+                    "water_percentage_area": 6,    # 6%
+                    "air_quality": 8,              # 8%
+                    "land_surface_temperature": 6, # 6%
+                    "ecological_quality_index": 12 # 12%
                 },
                 "social": {
-                    "crime_rate": 4,
-                    "education_level": 3,
-                    "access_to_transit": 4,
-                    "access_to_schools": 4,
-                    "access_to_hospitals": 4,
-                    "access_to_fire_stations": 3,
-                    "access_to_police": 4,
-                    "walkability": 4
+                    "crime_rate": 3.75,
+                    "education_level": 3.75,
+                    "access_to_transit": 3.75,
+                    "access_to_schools": 3.75,
+                    "access_to_hospitals": 3.75,
+                    "access_to_fire_stations": 3.75,
+                    "access_to_police": 3.75,
+                    "walkability": 3.75
                 },
                 "economic": {
                     "median_household_income": 10,
@@ -116,3 +135,36 @@ async def get_category_weights():
         return weights
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving weights: {str(e)}")
+    
+@router.post("/calculate-geographic", response_model=SustainabilityResult)
+async def calculate_sustainability_from_polygon(data: GeographicSustainabilityInput):
+    """
+    Calculate sustainability index using polygon coordinates for automatic environmental data extraction.
+    
+    This endpoint:
+    1. Takes polygon coordinates and social/economic data
+    2. Automatically extracts environmental indicators from satellite imagery
+    3. Calculates the complete sustainability index
+    """
+    try:
+        # Extract environmental indicators from satellite imagery
+        env_indicators = GeographicService.extract_all_environmental_indicators(
+            data.polygon.coordinates
+        )
+        
+        # Create environmental indicators object
+        environmental = EnvironmentalIndicators(**env_indicators)
+        
+        # Create complete sustainability input
+        complete_input = SustainabilityInput(
+            environmental=environmental,
+            social=data.social,
+            economic=data.economic
+        )
+        
+        # Calculate sustainability index
+        result = SustainabilityCalculator.calculate_sustainability_index(complete_input)
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Calculation error: {str(e)}")

@@ -1,53 +1,123 @@
-import axios from 'axios';
+// Frontend API service for sustainability calculator
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-// Use Vite environment variables (VITE_ prefix for client-side)
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 10000, // 10 second timeout
-});
-
-// Add request interceptor for debugging
-api.interceptors.request.use(
-  (config) => {
-    if (import.meta.env.DEV) {
-      console.log('API Request:', config.method?.toUpperCase(), config.url);
+class ApiService {
+  // Sustainability endpoints
+  static async calculateSustainabilityIndex(data) {
+    const response = await fetch(`${API_BASE_URL}/api/sustainability/calculate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Calculation failed');
     }
-    return config;
-  },
-  (error) => {
-    console.error('API Request Error:', error);
-    return Promise.reject(error);
+    
+    return response.json();
   }
-);
 
-// Add response interceptor for debugging
-api.interceptors.response.use(
-  (response) => {
-    if (import.meta.env.DEV) {
-      console.log('API Response:', response.status, response.config.url);
+  static async calculateFromPolygon(data) {
+    const response = await fetch(`${API_BASE_URL}/api/sustainability/calculate-geographic`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Geographic calculation failed');
     }
-    return response;
-  },
-  (error) => {
-    console.error('API Response Error:', error.response?.status, error.config?.url, error.message);
-    return Promise.reject(error);
+    
+    return response.json();
   }
-);
 
-export const sustainabilityAPI = {
-  calculateIndex: (data) => api.post('/api/calculate', data),
-  getIndicators: () => api.get('/api/indicators'),
-  getExample: () => api.get('/api/example'),
-  getWeights: () => api.get('/api/weights'),
-  healthCheck: () => api.get('/api/health'),
-  analyzeArea: (data) => api.post('/api/geographic/analyze-area', data),
-  calculateWithMap: (data) => api.post('/api/geographic/calculate-with-map', data),
-  checkGEEStatus: () => api.get('/api/geographic/gee-status'),
-};
+  static async getIndicatorDefinitions() {
+    const response = await fetch(`${API_BASE_URL}/api/sustainability/indicators`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch indicator definitions');
+    }
+    
+    return response.json();
+  }
 
-export default api;
+  static async getExampleInput() {
+    const response = await fetch(`${API_BASE_URL}/api/sustainability/example`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch example data');
+    }
+    
+    return response.json();
+  }
+
+  static async getCategoryWeights() {
+    const response = await fetch(`${API_BASE_URL}/api/sustainability/weights`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch category weights');
+    }
+    
+    return response.json();
+  }
+
+  // Geographic endpoints
+  static async getSatelliteImage(coordinates, width = 800, height = 600) {
+    const response = await fetch(`${API_BASE_URL}/api/geographic/satellite-image`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coordinates, width, height })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to get satellite image');
+    }
+    
+    return response.json();
+  }
+
+  static async calculateArea(coordinates) {
+    const response = await fetch(`${API_BASE_URL}/api/geographic/area`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coordinates })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to calculate area');
+    }
+    
+    return response.json();
+  }
+
+  static async extractEnvironmentalIndicators(coordinates) {
+    const response = await fetch(`${API_BASE_URL}/api/geographic/environmental-indicators`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coordinates })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to extract environmental indicators');
+    }
+    
+    return response.json();
+  }
+
+  static async testEarthEngineConnection() {
+    const response = await fetch(`${API_BASE_URL}/api/geographic/test-connection`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to test Earth Engine connection');
+    }
+    
+    return response.json();
+  }
+}
+
+export default ApiService;

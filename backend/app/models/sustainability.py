@@ -1,27 +1,41 @@
+# app/models/sustainability.py
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
+
 
 class EnvironmentalIndicators(BaseModel):
-    green_space_area: float = Field(..., ge=0, description="Area of green space in square meters")
+    # Green Percentage Area (GPA)
+    green_area: float = Field(..., ge=0, description="Area with NDVI > 0.2 in square meters")
     total_area: float = Field(..., gt=0, description="Total neighborhood area in square meters")
-    dwelling_units: int = Field(..., ge=0, description="Total number of dwelling units")
-    residential_area: float = Field(..., ge=0, description="Residential area in square meters")
-    commercial_area: float = Field(..., ge=0, description="Commercial area in square meters")
-    industrial_area: float = Field(..., ge=0, description="Industrial area in square meters")
-    impervious_surface_area: float = Field(..., ge=0, description="Area of impervious surfaces in square meters")
-    air_quality_aod: float = Field(..., ge=0, le=1, description="Annual average Aerosol Optical Depth (AOD) value")
+    
+    # Water Percentage Area (WPA)
+    water_area: float = Field(..., ge=0, description="Area with MNDWI > 0 in square meters")
+    
+    # Air Quality (AQ)
+    air_quality_aod: float = Field(..., ge=0, le=1, description="Annual average Aerosol Optical Depth (AOD) from Sentinel-5P TROPOMI")
+    
+    # Land Surface Temperature (LST)
+    land_surface_temperature: float = Field(..., ge=0, description="Annual average LST in Celsius from MODIS")
+    
+    # Ecological Quality Index (EQI) components
+    mean_ndvi: float = Field(..., ge=0, le=1, description="Mean NDVI value")
+    tasseled_cap_wetness: float = Field(..., ge=-1, le=1, description="Tasseled Cap Wetness component")
+    mean_lst_for_eqi: float = Field(..., ge=0, description="Mean LST for EQI calculation in Celsius")
+    ndbsi: float = Field(..., ge=0, le=1, description="Normalized Difference Bareness and Soil Index")
+    pm25: float = Field(..., ge=0, description="Annual average PM2.5 concentration in µg/m³")
 
 class SocialIndicators(BaseModel):
     total_population: int = Field(..., gt=0, description="Total neighborhood population")
     total_crimes: int = Field(..., ge=0, description="Number of crimes reported")
     adults_with_degree: int = Field(..., ge=0, description="Adults with bachelor's degree or higher")
     total_adult_population: int = Field(..., gt=0, description="Total adult population")
-    residents_near_transit: int = Field(..., ge=0, description="Residents within 0.5 miles of transit")
-    residents_near_schools: int = Field(..., ge=0, description="Residents within 0.5 miles of schools")
-    residents_near_hospitals: int = Field(..., ge=0, description="Residents within 1 mile of hospitals")
-    residents_near_fire_stations: int = Field(..., ge=0, description="Residents within 2 miles of fire stations")
+    avg_time_to_transit: float = Field(..., ge=0, description="Average travel time to closest transit stop in minutes")
+    avg_time_to_schools: float = Field(..., ge=0, description="Average travel time to closest school in minutes")
+    avg_time_to_hospitals: float = Field(..., ge=0, description="Average travel time to closest hospital in minutes")
+    avg_time_to_fire_stations: float = Field(..., ge=0, description="Average travel time to closest fire station in minutes")
+    avg_time_to_police: float = Field(..., ge=0, description="Average travel time to closest police station in minutes")
     street_intersections: int = Field(..., ge=0, description="Number of street intersections")
-    residents_near_police: int = Field(..., ge=0, description="Residents within 1 mile of police stations")
+    
 
 class EconomicIndicators(BaseModel):
     median_household_income: float = Field(..., ge=0, description="Median household income in dollars")
@@ -37,11 +51,11 @@ class SustainabilityInput(BaseModel):
 
 class IndicatorResults(BaseModel):
     # Environmental
-    green_space_percentage: float
-    average_residential_density: float
-    land_use_diversity: float
-    impervious_surface_percentage: float
+    green_percentage_area: float
+    water_percentage_area: float
     air_quality: float
+    land_surface_temperature: float
+    ecological_quality_index: float
     
     # Social
     crime_rate: float
@@ -60,11 +74,11 @@ class IndicatorResults(BaseModel):
 
 class NormalizedResults(BaseModel):
     # Environmental (normalized 0-1)
-    gsp_normalized: float
-    ard_normalized: float
-    lud_normalized: float
-    isp_normalized: float
+    gpa_normalized: float
+    wpa_normalized: float
     aq_normalized: float
+    lst_normalized: float
+    eqi_normalized: float
     
     # Social (normalized 0-1)
     cr_normalized: float
@@ -80,7 +94,7 @@ class NormalizedResults(BaseModel):
     mhi_normalized: float
     ur_normalized: float
     ha_normalized: float
-
+    
 class SustainabilityResult(BaseModel):
     # Raw indicators
     indicators: IndicatorResults
@@ -107,3 +121,13 @@ class IndicatorDefinition(BaseModel):
     category: str
     weight: float
     threshold: Optional[float] = None
+
+
+    # Geographic models
+class PolygonInput(BaseModel):
+    coordinates: List[List[float]] = Field(..., description="Polygon coordinates as [[lon, lat], [lon, lat], ...]")
+
+class GeographicSustainabilityInput(BaseModel):
+    polygon: PolygonInput
+    social: SocialIndicators
+    economic: EconomicIndicators
