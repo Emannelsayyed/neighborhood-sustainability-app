@@ -99,11 +99,11 @@ export const FIELD_METADATA = {
     water_area: { label: 'Water Area (m²)', description: 'Area with MNDWI > 0 in square meters' },
     air_quality_aod: { label: 'Air Quality AOD', description: 'Annual average Aerosol Optical Depth' },
     land_surface_temperature: { label: 'Land Surface Temperature (°C)', description: 'Annual average LST in Celsius' },
-    mean_ndvi: { label: 'Mean NDVI', description: 'Mean NDVI value' },
-    tasseled_cap_wetness: { label: 'Tasseled Cap Wetness', description: 'Tasseled Cap Wetness component' },
-    mean_lst_for_eqi: { label: 'Mean LST for EQI (°C)', description: 'Mean LST for EQI calculation' },
-    ndbsi: { label: 'NDBSI', description: 'Normalized Difference Bareness and Soil Index' },
-    pm25: { label: 'PM2.5 (µg/m³)', description: 'Annual average PM2.5 concentration' }
+    mean_ndvi: { label: 'Greenness', description: 'Mean NDVI value' },
+    tasseled_cap_wetness: { label: 'Wetness', description: 'Tasseled Cap Wetness component' },
+    mean_lst_for_eqi: { label: 'Surface Heat', description: 'Mean LST for EQI calculation' },
+    ndbsi: { label: 'Dryness', description: 'Normalized Difference Bareness and Soil Index' },
+    pm25: { label: 'Air Quality PM2.5', description: 'Annual average PM2.5 concentration (µg/m³)' }
   },
   SOCIAL: {
     total_population: { label: 'Total Population', description: 'Total neighborhood population' },
@@ -156,7 +156,7 @@ export const GRADE_THRESHOLDS = {
 
 // Map configuration
 export const MAP_CONFIG = {
-  DEFAULT_CENTER: [-74.0059, 40.7128], // NYC coordinates
+  DEFAULT_CENTER: [31.05, 30.4500], // Elbagour, Menofia coordinates
   DEFAULT_ZOOM: 12,
   SATELLITE_IMAGE_DIMENSIONS: {
     width: 800,
@@ -167,7 +167,7 @@ export const MAP_CONFIG = {
 // UI constants
 export const UI_CONSTANTS = {
   LOADING_MESSAGES: {
-    CALCULATING: 'Calculating sustainability index...',
+    CALCULATING: 'Extracting Calculating Environmental indices...',
     EXTRACTING_DATA: 'Extracting environmental data...',
     LOADING_IMAGE: 'Loading satellite image...'
   },

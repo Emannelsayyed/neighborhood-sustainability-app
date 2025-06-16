@@ -11,8 +11,8 @@ class SustainabilityCalculator:
     # Normalization thresholds
     THRESHOLDS = {
         # Environmental thresholds
-        'gpa_max': 100,  # 100% green area as benchmark
-        'wpa_max': 100,  # 100% water area as benchmark
+        'gpa_max': 40,  # 40% green area as benchmark
+        'wpa_max': 10,  # 10% water area as benchmark
         'aq_max': 1.0,   # AOD of 1.0 as high pollution threshold
         'lst_min': 15,   # 15°C as minimum LST
         'lst_max': 35,   # 35°C as maximum LST
@@ -33,7 +33,7 @@ class SustainabilityCalculator:
         
         # Economic thresholds
         'mhi_max': 100000,  # $100,000 as high income benchmark
-        'ur_max': 100,      # 100% unemployment as maximum
+        'ur_max': 30,      # 100% unemployment as maximum
     }
         
     # Weights for final aggregation
@@ -97,7 +97,7 @@ class SustainabilityCalculator:
         # Normalize PC1 to get EQI
         eqi = (pc1 - SustainabilityCalculator.THRESHOLDS['pc1_min']) / \
               (SustainabilityCalculator.THRESHOLDS['pc1_max'] - SustainabilityCalculator.THRESHOLDS['pc1_min'])
-        eqi = max(0, min(1, eqi)) * 100  # Convert to percentage and clip
+        eqi = max(0, min(1, eqi))  # Keep as 0-1 normalized value
         
         # Social indicators
         cr = (soc.total_crimes / soc.total_population) * 1000
@@ -143,12 +143,12 @@ class SustainabilityCalculator:
         """Normalize indicators to 0-1 scale"""
         
         # Environmental indicators (higher is better except AQ and LST)
-        gpa_norm = indicators.green_percentage_area / 100
-        wpa_norm = indicators.water_percentage_area / 100
+        gpa_norm = min(1.0, indicators.green_percentage_area / SustainabilityCalculator.THRESHOLDS['gpa_max'])
+        wpa_norm = min(1.0, indicators.water_percentage_area / SustainabilityCalculator.THRESHOLDS['wpa_max'])
         aq_norm = max(0.0, 1.0 - indicators.air_quality / SustainabilityCalculator.THRESHOLDS['aq_max'])
         lst_norm = max(0.0, 1.0 - (indicators.land_surface_temperature - SustainabilityCalculator.THRESHOLDS['lst_min']) / 
                       (SustainabilityCalculator.THRESHOLDS['lst_max'] - SustainabilityCalculator.THRESHOLDS['lst_min']))
-        eqi_norm = indicators.ecological_quality_index / 100
+        eqi_norm = indicators.ecological_quality_index  # Already normalized 0-1
         
         # Social indicators
         cr_norm = max(0.0, 1.0 - indicators.crime_rate / SustainabilityCalculator.THRESHOLDS['cr_max'])
@@ -189,15 +189,16 @@ class SustainabilityCalculator:
     
     @staticmethod
     def calculate_category_scores(normalized: NormalizedResults) -> Tuple[float, float, float]:
-        """Calculate category scores (0-100) using new weighting scheme"""
+        """Calculate category scores (0-100) using proper weighting within categories"""
         
-        # Environmental score using specific weights
+        # Environmental score using relative weights within the 40% category
+        # Total env weights: 8+6+8+6+12 = 40, so divide each by 0.40 to get relative weights
         env_score = (
-            SustainabilityCalculator.WEIGHTS['environmental']['gpa'] * normalized.gpa_normalized +
-            SustainabilityCalculator.WEIGHTS['environmental']['wpa'] * normalized.wpa_normalized +
-            SustainabilityCalculator.WEIGHTS['environmental']['aq'] * normalized.aq_normalized +
-            SustainabilityCalculator.WEIGHTS['environmental']['lst'] * normalized.lst_normalized +
-            SustainabilityCalculator.WEIGHTS['environmental']['eqi'] * normalized.eqi_normalized
+            (0.08/0.40) * normalized.gpa_normalized +
+            (0.06/0.40) * normalized.wpa_normalized +
+            (0.08/0.40) * normalized.aq_normalized +
+            (0.06/0.40) * normalized.lst_normalized +
+            (0.12/0.40) * normalized.eqi_normalized
         ) * 100
         
         # Social score (equal weights for 8 indicators)
@@ -210,7 +211,7 @@ class SustainabilityCalculator:
             normalized.af_normalized + 
             normalized.ap_normalized +
             normalized.w_normalized 
-            
+
         ) / 8 * 100
         
         # Economic score (equal weights for 3 indicators)
@@ -279,127 +280,169 @@ class SustainabilityCalculator:
     def get_indicator_definitions() -> List[IndicatorDefinition]:
         """Get definitions of all indicators"""
         return [
-            # Environmental
+            # Environmental indicators
             IndicatorDefinition(
-                name="Green Space Percentage",
-                description="Proportion of vegetated area indicating environmental health",
-                calculation="(Green space area / Total area) × 100",
+                name="Green Percentage Area (GPA)",
+                description="Measures the extent of vegetated areas, crucial for carbon sequestration, habitat provision, and urban cooling",
+                calculation="(Area with NDVI > 0.2 / Total area) × 100",
                 category="Environmental",
-                weight=10.0,
-                threshold=50.0
+                weight=8.0,
+                threshold=40.0
             ),
             IndicatorDefinition(
-                name="Average Residential Density",
-                description="Dwelling units per acre reflecting compact development",
-                calculation="Total dwelling units / Total area (acres)",
+                name="Water Percentage Area (WPA)",
+                description="Indicates the presence of water bodies, important for biodiversity, climate regulation, and recreational opportunities",
+                calculation="(Area with MNDWI > 0 / Total area) × 100",
                 category="Environmental",
-                weight=7.0,
-                threshold=12.0
+                weight=6.0,
+                threshold=10.0
             ),
             IndicatorDefinition(
-                name="Land Use Diversity",
-                description="Variety of land use types using Shannon Diversity Index",
-                calculation="Shannon Index: -Σ(pi × ln(pi))",
-                category="Environmental",
-                weight=7.0,
-                threshold=1.39
-            ),
-            IndicatorDefinition(
-                name="Impervious Surface Percentage",
-                description="Non-permeable surfaces affecting runoff and heat",
-                calculation="(Impervious area / Total area) × 100",
-                category="Environmental",
-                weight=8.0
-            ),
-            IndicatorDefinition(
-                name="Air Quality",
-                description="Annual average Aerosol Optical Depth indicating air pollution",
-                calculation="Annual average AOD from Sentinel-5P TROPOMI data",
+                name="Air Quality (AQ)",
+                description="Assesses air pollution levels using Aerosol Optical Depth (AOD), impacting public health and environmental quality",
+                calculation="Annual average AOD over the last 12 months from Sentinel-5P TROPOMI",
                 category="Environmental",
                 weight=8.0,
                 threshold=1.0
             ),
-            # Social indicators...
             IndicatorDefinition(
-                name="Crime Rate",
-                description="Number of crimes per 1,000 residents",
-                calculation="(Total crimes / Population) × 1000",
+                name="Land Surface Temperature (LST)",
+                description="Reflects thermal conditions, indicating urban heat island effects and energy consumption patterns",
+                calculation="Annual average LST over the last 12 months from MODIS",
+                category="Environmental",
+                weight=6.0,
+                threshold=35.0
+            ),
+            IndicatorDefinition(
+                name="Ecological Quality Index (EQI)",
+                description="A composite index capturing multiple aspects of ecological quality through Principal Component Analysis (PCA) of NDVI, Tasseled Cap Wetness, LST, NDBSI, and PM2.5",
+                calculation="First principal component (PC1) from PCA of normalized components: NDVI, Wetness, Heat, Dryness, and Air Quality",
+                category="Environmental",
+                weight=12.0,
+                threshold=1
+            ),
+            # EQI Components
+            IndicatorDefinition(
+                name="Greenness (NDVI)",
+                description="Mean Normalized Difference Vegetation Index reflecting vegetation density and health",
+                calculation="Mean NDVI normalized as (NDVI - min_NDVI) / (max_NDVI - min_NDVI) where min=0, max=1",
+                category="Environmental",
+                weight=0.0,  # Part of EQI composite
+            ),
+            IndicatorDefinition(
+                name="Wetness (Tasseled Cap)",
+                description="Tasseled Cap Wetness component indicating soil and vegetation moisture content",
+                calculation="Wetness normalized as (WET - min_WET) / (max_WET - min_WET) where min=-0.5, max=0.5",
+                category="Environmental",
+                weight=0.0,  # Part of EQI composite
+            ),
+            IndicatorDefinition(
+                name="Heat (LST for EQI)",
+                description="Mean Land Surface Temperature component for ecological quality assessment",
+                calculation="Heat normalized as 1 - (LST - min_LST) / (max_LST - min_LST) where min=15°C, max=35°C",
+                category="Environmental",
+                weight=0.0,  # Part of EQI composite
+            ),
+            IndicatorDefinition(
+                name="Dryness (NDBSI)",
+                description="Normalized Difference Bare Soil Index indicating soil dryness and bare land coverage",
+                calculation="Dryness normalized as 1 - (NDBSI - min_NDBSI) / (max_NDBSI - min_NDBSI) where min=0, max=1",
+                category="Environmental",
+                weight=0.0,  # Part of EQI composite
+            ),
+            IndicatorDefinition(
+                name="Air Quality (PM2.5)",
+                description="Annual average PM2.5 concentrations from global datasets affecting ecological and human health",
+                calculation="PM2.5 normalized as 1 - (PM2.5 / max_PM2.5) where max=100 µg/m³",
+                category="Environmental",
+                weight=0.0,  # Part of EQI composite
+            ),
+            # Social indicators
+            IndicatorDefinition(
+                name="Crime Rate (CR)",
+                description="Indicates safety and social cohesion",
+                calculation="(Number of crimes / Total population) × 1000",
                 category="Social",
-                weight=4.0,
+                weight=3.75,
                 threshold=100.0
             ),
             IndicatorDefinition(
-                name="Education Level",
-                description="Percentage with bachelor's degree or higher",
-                calculation="(Adults with degree / Total adults) × 100",
+                name="Education Level (EL)",
+                description="Reflects human capital and educational attainment",
+                calculation="(Number with bachelor's degree or higher / Total adult population) × 100",
                 category="Social",
-                weight=3.0
+                weight=3.75,
             ),
             IndicatorDefinition(
-                name="Access to Transit",
-                description="Percentage within 0.5 miles of public transit",
-                calculation="(Residents near transit / Total population) × 100",
+                name="Access to Public Transportation (APT)",
+                description="Measures average travel time to the closest transit stop, reflecting mobility and reduced vehicle use",
+                calculation="Average travel time (in minutes) to the closest transit stop for all residents",
                 category="Social",
-                weight=4.0
+                weight=3.75,
+                threshold=30.0
             ),
             IndicatorDefinition(
-                name="Access to Schools",
-                description="Percentage within 0.5 miles of schools",
-                calculation="(Residents near schools / Total population) × 100",
+                name="Access to Schools (AS)",
+                description="Measures average travel time to the closest school, reflecting educational accessibility",
+                calculation="Average travel time (in minutes) to the closest school for all residents",
                 category="Social",
-                weight=4.0
+                weight=3.75,
+                threshold=30.0
             ),
             IndicatorDefinition(
-                name="Access to Hospitals",
-                description="Percentage within 1 mile of hospitals",
-                calculation="(Residents near hospitals / Total population) × 100",
+                name="Access to Hospitals (AH)",
+                description="Measures average travel time to the closest hospital, reflecting healthcare accessibility",
+                calculation="Average travel time (in minutes) to the closest hospital for all residents",
                 category="Social",
-                weight=4.0
+                weight=3.75,
+                threshold=30.0
             ),
             IndicatorDefinition(
-                name="Access to Fire Stations",
-                description="Percentage within 2 miles of fire stations",
-                calculation="(Residents near fire stations / Total population) × 100",
+                name="Access to Fire Stations (AF)",
+                description="Measures average travel time to the closest fire station, reflecting emergency service accessibility",
+                calculation="Average travel time (in minutes) to the closest fire station for all residents",
                 category="Social",
-                weight=3.0
+                weight=3.75,
+                threshold=30.0
             ),
             IndicatorDefinition(
-                name="Access to Police",
-                description="Percentage within 1 mile of police stations",
-                calculation="(Residents near police / Total population) × 100",
+                name="Access to Police Stations (APS)",
+                description="Measures average travel time to the nearest police station, enhancing safety",
+                calculation="Average travel time (in minutes) to the nearest police station for all residents",
                 category="Social",
-                weight=4.0
+                weight=3.75,
+                threshold=30.0
             ),
             IndicatorDefinition(
-                name="Walkability",
-                description="Street intersections per square mile",
-                calculation="Street intersections / Total area (sq miles)",
+                name="Walkability (W)",
+                description="Reflects pedestrian-friendly design",
+                calculation="Number of intersections / Total area (square miles)",
                 category="Social",
-                weight=4.0,
+                weight=3.75,
                 threshold=140.0
             ),
-            # Economic indicators...
+            # Economic indicators
             IndicatorDefinition(
-                name="Median Household Income",
-                description="Median annual household income",
+                name="Median Household Income (MHI)",
+                description="Indicates economic prosperity",
                 calculation="Direct value from census data",
                 category="Economic",
                 weight=10.0,
                 threshold=100000.0
             ),
             IndicatorDefinition(
-                name="Unemployment Rate",
-                description="Percentage of labor force unemployed",
-                calculation="(Unemployed / Labor force) × 100",
+                name="Unemployment Rate (UR)",
+                description="Reflects economic stability",
+                calculation="(Number unemployed / Labor force) × 100",
                 category="Economic",
                 weight=10.0,
-                threshold=20.0
+                threshold=30.0
             ),
             IndicatorDefinition(
-                name="Housing Affordability",
-                description="Percentage of affordable housing units",
-                calculation="(Affordable units / Total units) × 100",
+                name="Housing Affordability (HA)",
+                description="Measures access to affordable housing",
+                calculation="(Affordable housing units / Total housing units) × 100",
                 category="Economic",
-                weight=10.0
+                weight=10.0,
             )
         ]

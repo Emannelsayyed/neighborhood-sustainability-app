@@ -1,7 +1,7 @@
 import React from 'react';
 import { CATEGORIES, GRADE_THRESHOLDS} from '../../utils/constants';
 
-const ResultsDisplay = ({ results }) => {
+const ResultsDisplay = ({ results, onShowReport, formData }) => {
   if (!results) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-md">
@@ -87,7 +87,7 @@ const ResultsDisplay = ({ results }) => {
     </div>
   );
 
-  return (
+return (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-lg shadow-md text-center">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Sustainability Assessment</h2>
@@ -106,35 +106,138 @@ const ResultsDisplay = ({ results }) => {
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Category Breakdown</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {categoryScores.map(({ name, score, color }) => (
-            <div key={name} className="text-center p-4 border rounded-lg">
-              <div className="text-3xl font-bold mb-2" style={{ color }}>
-                {score.toFixed(1)}
+        <h3 className="text-lg font-semibold text-gray-800 mb-6">Detailed Assessment by Category</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Environmental Category */}
+          <div className="border rounded-lg p-4" style={{ borderColor: CATEGORIES.ENVIRONMENTAL.color }}>
+            <div className="text-center mb-4">
+              <div className="text-3xl font-bold mb-2" style={{ color: CATEGORIES.ENVIRONMENTAL.color }}>
+                {results.environmental_score.toFixed(1)}
               </div>
-              <div className="text-gray-600 font-medium">{name}</div>
+              <div className="text-gray-600 font-medium">Environmental</div>
               <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                 <div 
                   className="h-2 rounded-full"
                   style={{ 
-                    width: `${score}%`,
-                    backgroundColor: color
+                    width: `${results.environmental_score}%`,
+                    backgroundColor: CATEGORIES.ENVIRONMENTAL.color
                   }}
                 />
               </div>
             </div>
-          ))}
+            <div className="space-y-2">
+              {environmentalIndicators.map(({ key, label, value, normalized }) => (
+                <div key={key} className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">{label}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium w-12 text-right">
+                      {typeof value === 'number' ? value.toFixed(1) : value}
+                    </span>
+                    <div className="w-8 bg-gray-200 rounded-full h-1.5">
+                      <div 
+                        className="h-1.5 rounded-full"
+                        style={{ 
+                          width: `${Math.max(0, Math.min(100, normalized * 100))}%`,
+                          backgroundColor: CATEGORIES.ENVIRONMENTAL.color
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Social Category */}
+          <div className="border rounded-lg p-4" style={{ borderColor: CATEGORIES.SOCIAL.color }}>
+            <div className="text-center mb-4">
+              <div className="text-3xl font-bold mb-2" style={{ color: CATEGORIES.SOCIAL.color }}>
+                {results.social_score.toFixed(1)}
+              </div>
+              <div className="text-gray-600 font-medium">Social</div>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div 
+                  className="h-2 rounded-full"
+                  style={{ 
+                    width: `${results.social_score}%`,
+                    backgroundColor: CATEGORIES.SOCIAL.color
+                  }}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              {socialIndicators.map(({ key, label, value, normalized }) => (
+                <div key={key} className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">{label}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium w-12 text-right">
+                      {typeof value === 'number' ? value.toFixed(1) : value}
+                    </span>
+                    <div className="w-8 bg-gray-200 rounded-full h-1.5">
+                      <div 
+                        className="h-1.5 rounded-full"
+                        style={{ 
+                          width: `${Math.max(0, Math.min(100, normalized * 100))}%`,
+                          backgroundColor: CATEGORIES.SOCIAL.color
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Economic Category */}
+          <div className="border rounded-lg p-4" style={{ borderColor: CATEGORIES.ECONOMIC.color }}>
+            <div className="text-center mb-4">
+              <div className="text-3xl font-bold mb-2" style={{ color: CATEGORIES.ECONOMIC.color }}>
+                {results.economic_score.toFixed(1)}
+              </div>
+              <div className="text-gray-600 font-medium">Economic</div>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div 
+                  className="h-2 rounded-full"
+                  style={{ 
+                    width: `${results.economic_score}%`,
+                    backgroundColor: CATEGORIES.ECONOMIC.color
+                  }}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              {economicIndicators.map(({ key, label, value, normalized }) => (
+                <div key={key} className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">{label}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium w-12 text-right">
+                      {typeof value === 'number' ? value.toFixed(1) : value}
+                    </span>
+                    <div className="w-8 bg-gray-200 rounded-full h-1.5">
+                      <div 
+                        className="h-1.5 rounded-full"
+                        style={{ 
+                          width: `${Math.max(0, Math.min(100, normalized * 100))}%`,
+                          backgroundColor: CATEGORIES.ECONOMIC.color
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Detailed Indicators</h3>
-        <div className="space-y-4">
-          {renderIndicatorSection('Environmental Indicators', environmentalIndicators, CATEGORIES.ENVIRONMENTAL.color)}
-          {renderIndicatorSection('Social Indicators', socialIndicators, CATEGORIES.SOCIAL.color)}
-          {renderIndicatorSection('Economic Indicators', economicIndicators, CATEGORIES.ECONOMIC.color)}
-        </div>
+      <div className="text-center">
+        <button
+          onClick={() => onShowReport(results, formData)}
+          className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg"
+        >
+          📊 Get Data Analysis Report!
+        </button>
       </div>
     </div>
   );

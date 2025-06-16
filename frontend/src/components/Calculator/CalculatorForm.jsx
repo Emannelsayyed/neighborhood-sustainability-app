@@ -27,6 +27,16 @@ const CalculatorForm = ({
   return baseData;
 });
   
+  const [collapsedSections, setCollapsedSections] = useState({});
+
+  const toggleSection = (category) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
+
+
   const [errors, setErrors] = useState({});
 
   const validateField = (category, field, value) => {
@@ -127,13 +137,25 @@ const CalculatorForm = ({
   };
 
   const renderCategory = (category, title) => (
-    <div key={category} className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold mb-4 text-gray-800">{title}</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {Object.keys(formData[category] || {}).map(field => 
-          renderInputField(category, field)
-        )}
+    <div key={category} className="bg-white rounded-lg shadow-md">
+      <div 
+        className="p-4 cursor-pointer flex justify-between items-center border-b hover:bg-gray-50"
+        onClick={() => toggleSection(category)}
+      >
+        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        <span className="text-gray-500">
+          {collapsedSections[category] ? '▼' : '▲'}
+        </span>
       </div>
+      {!collapsedSections[category] && (
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Object.keys(formData[category] || {}).map(field => 
+              renderInputField(category, field)
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 
