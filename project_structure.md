@@ -13,11 +13,13 @@ neighborhood-sustainability-app/
 │   │   ├── services/
 │   │   │   ├── __init__.py
 │   │   │   ├── geographic.py
+│   │   │   ├── timeseries.py
 │   │   │   ├── earth_engine.py
 │   │   │   └── calculator.py
 │   │   ├── routers/
 │   │   │   ├── __init__.py
 │   │   │   ├── geographic.py
+│   │   │   ├── timeseries.py
 │   │   │   └── sustainability.py
 │   │   └── core/
 │   │       ├── __init__.py
@@ -36,6 +38,11 @@ neighborhood-sustainability-app/
 │   │   │   │   ├── MapSelector.jsx
 │   │   │   │   ├── CalculatorForm.jsx
 │   │   │   │   └── ResultsDisplay.jsx
+│   │   │   ├── TimeSeries/
+│   │   │   │   ├── TimeSeriesAnalyzer.jsx    
+│   │   │   │   ├── YearSelector.jsx           
+│   │   │   │   ├── TimeSeriesResults.jsx      
+│   │   │   │   └── YearlyDataCard.jsx         
 │   │   │   ├── Layout/
 │   │   │   │   └── Layout.jsx
 │   │   │   └── Common/

@@ -1,6 +1,6 @@
 # app/models/sustainability.py
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Any, Dict
 
 
 class EnvironmentalIndicators(BaseModel):
@@ -131,3 +131,37 @@ class GeographicSustainabilityInput(BaseModel):
     polygon: PolygonInput
     social: SocialIndicators
     economic: EconomicIndicators
+
+
+
+# Historical Time series Models
+
+class TimeSeriesInput(BaseModel):
+    polygon: PolygonInput
+    years: List[int] = Field(..., description="List of years to analyze (2000-2024)")
+    
+class YearlyEnvironmentalData(BaseModel):
+    year: int
+    green_area: float
+    total_area: float
+    water_area: float
+    air_quality_aod: float
+    land_surface_temperature: float
+    mean_ndvi: float
+    tasseled_cap_wetness: float
+    mean_lst_for_eqi: float
+    ndbsi: float
+    pm25: float
+    environmental_score: float
+    satellite_image_url: str
+    ndvi_image_url: str = ""
+    wetness_image_url: str = ""
+    dryness_image_url: str = ""
+    heat_image_url: str = ""
+    
+class TimeSeriesResult(BaseModel):
+    polygon_coordinates: List[List[float]]
+    total_area: float
+    yearly_data: List[YearlyEnvironmentalData]
+    animation_gif_url: str
+    trend_analysis: Dict[str, Any]    

@@ -126,3 +126,22 @@ async def test_earth_engine_connection():
             "message": f"Google Earth Engine connection failed: {str(e)}",
             "test_result": None 
         }
+
+@router.post("/multi-index-images")
+async def get_multi_index_images(polygon_data: SatelliteImageRequest):
+    """Get multi-index remote sensing analysis images"""
+    try:
+        coordinates = polygon_data.coordinates
+        
+        # Get multi-index images
+        images = GeographicService.get_multi_index_images(coordinates)
+        
+        return {
+            "success": True,
+            "images": images,
+            "message": "Multi-index images generated successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating multi-index images: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
