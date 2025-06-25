@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     GEE_PROJECT_ID: Optional[str] = None
     
     # Your Google Cloud Project ID
-    GOOGLE_CLOUD_PROJECT: str = "sustainability-index"
+    GOOGLE_CLOUD_PROJECT: str = "sustainability-index-463713"
     
     class Config:
         env_file = ".env"

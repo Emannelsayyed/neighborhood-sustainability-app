@@ -1,3 +1,4 @@
+/* Center the root container */
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -5,6 +6,7 @@
   text-align: center;
 }
 
+/* Logo styles */
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -18,6 +20,12 @@
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
+/* Optional: animate logo if motion preference allows */
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
 @keyframes logo-spin {
   from {
     transform: rotate(0deg);
@@ -27,16 +35,12 @@
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
+/* Card styling — could also be done with @apply */
 .card {
-  padding: 2em;
+  @apply p-8 bg-white rounded-2xl shadow-md transition hover:shadow-lg;
 }
 
+/* Muted docs link */
 .read-the-docs {
   color: #888;
 }

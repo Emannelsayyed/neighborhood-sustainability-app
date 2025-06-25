@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import Layout from './components/Layout/Layout';
 import MapSelector from './components/Calculator/MapSelector';
-import CalculatorForm from './components/Calculator/CalculatorForm'; 
+import CalculatorForm from './components/Calculator/CalculatorForm';
 import ResultsDisplay from './components/Calculator/ResultsDisplay';
 import DataAnalysisReport from './components/Calculator/DataAnalysisReport';
 import ErrorMessage from './components/Common/ErrorMessage';
 import LoadingSpinner from './components/Common/LoadingSpinner';
 import ApiService from './services/api';
+import Intro from './components/Intro';
 import { UI_CONSTANTS, DEFAULT_VALUES } from './utils/constants';
 
-function App() { 
+function App() {
+  const [showIntro, setShowIntro] = useState(true);
   const [polygonCoordinates, setPolygonCoordinates] = useState(null);
   const [environmentalData, setEnvironmentalData] = useState(null);
   const [satelliteImageUrl, setSatelliteImageUrl] = useState('');
@@ -28,7 +30,7 @@ function App() {
       const data = await ApiService.extractEnvironmentalIndicators(coordinates);
       setPolygonCoordinates(coordinates);
       setEnvironmentalData(data);
-    } catch (err) { 
+    } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
@@ -47,9 +49,9 @@ function App() {
     setLoading(true);
     setError(null);
     setFormData(data);
-    try { 
+    try {
       const result = await ApiService.calculateSustainabilityIndex(data);
-      setResults(result); 
+      setResults(result);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -58,21 +60,25 @@ function App() {
   };
 
   const handleManualCalculation = () => {
-  setEnvironmentalData(null);
-  setPolygonCoordinates(null);
-  setSatelliteImageUrl('');
-  setArea(null);
-  setResults(null);
-  setError(null);
-  // Force show the form with default values
-  setEnvironmentalData({});
+    setEnvironmentalData(null);
+    setPolygonCoordinates(null);
+    setSatelliteImageUrl('');
+    setArea(null);
+    setResults(null);
+    setError(null);
+    setEnvironmentalData({});
   };
 
   const handleShowReport = (results, formData) => {
     setReportData({ results, formData });
     setShowReport(true);
   };
- 
+
+  // full-screen Intro 
+  if (showIntro) {
+    return <Intro onStart={() => setShowIntro(false)} />;
+  }
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -88,18 +94,18 @@ function App() {
             >
               Manual Entry
             </button>
-          </div> 
+          </div>
         </div>
 
         {error && (
-          <ErrorMessage 
-            message={error} 
-            dismissible 
-            onDismiss={() => setError(null)} 
+          <ErrorMessage
+            message={error}
+            dismissible
+            onDismiss={() => setError(null)}
           />
         )}
 
-        <MapSelector 
+        <MapSelector
           onPolygonSelected={handlePolygonSelected}
           onAreaCalculated={handleAreaCalculated}
           onSatelliteImage={handleSatelliteImage}
@@ -113,7 +119,7 @@ function App() {
         )}
 
         {environmentalData && (
-          <CalculatorForm 
+          <CalculatorForm
             satelliteData={environmentalData}
             onSubmit={handleFormSubmit}
             loading={loading}
@@ -121,22 +127,21 @@ function App() {
         )}
 
         {results && (
-          <ResultsDisplay 
-            results={results} 
+          <ResultsDisplay
+            results={results}
             onShowReport={handleShowReport}
-            formData={formData} 
+            formData={formData}
           />
         )}
 
         {showReport && reportData && (
-          <DataAnalysisReport 
+          <DataAnalysisReport
             results={reportData.results}
             formData={reportData.formData}
             onClose={() => setShowReport(false)}
           />
         )}
-
-      </div>  
+      </div>
     </Layout>
   );
 }
