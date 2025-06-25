@@ -1,5 +1,5 @@
 import React from 'react';
-import { Leaf, BarChart3, Users, DollarSign, Github, ExternalLink } from 'lucide-react';
+import { Leaf, BarChart3, Users, DollarSign, Github, ExternalLink, TrendingUp } from 'lucide-react';
 
 // Header Component
 export const Header = () => {
@@ -30,6 +30,10 @@ export const Header = () => {
               <div className="flex items-center space-x-1">
                 <DollarSign className="w-4 h-4 text-purple-600" />
                 <span>Economic</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <TrendingUp className="w-4 h-4 text-orange-600" />
+                <span>Time Series</span>
               </div>
             </div>
           </nav>
@@ -74,6 +78,10 @@ export const Footer = () => {
               <li className="flex items-center space-x-2">
                 <DollarSign className="w-4 h-4" />
                 <span>Economic Vitality Metrics</span>
+              </li>
+              <li className="flex items-center space-x-2">
+                <TrendingUp className="w-4 h-4" />
+                <span>Time Series Analysis</span>
               </li>
             </ul>
           </div>

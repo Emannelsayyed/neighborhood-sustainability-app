@@ -83,6 +83,141 @@ class GeographicService:
             raise
     
     @staticmethod
+    def get_multi_index_images(coordinates: List[List[float]], width: int = 800, height: int = 600) -> Dict[str, str]:
+        """Generate multi-index remote sensing analysis image URLs"""
+        try:
+            GeographicService.initialize_earth_engine()
+            
+            if not GeographicService.validate_polygon(coordinates):
+                raise ValueError("Invalid polygon coordinates")
+            
+            polygon = ee.Geometry.Polygon(coordinates)
+            
+            # Get recent Sentinel-2 and Landsat data
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=180)
+            
+            # Sentinel-2 for high resolution indices
+            s2_collection = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+                        .filterBounds(polygon)
+                        .filterDate(start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+                        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+                        .sort('CLOUDY_PIXEL_PERCENTAGE'))
+            
+            # Landsat for Tasseled Cap components
+            landsat_collection = (ee.ImageCollection('LANDSAT/LC08/C02/T1_L2')
+                                .filterBounds(polygon)
+                                .filterDate(start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+                                .filter(ee.Filter.lt('CLOUD_COVER', 20))
+                                .sort('CLOUD_COVER'))
+            
+            # Get best images
+            s2_image = s2_collection.first()
+            landsat_image = landsat_collection.first()
+            
+            # Calculate indices
+            indices = GeographicService._calculate_spectral_indices(s2_image, landsat_image, polygon)
+            
+            # Generate image URLs
+            return {
+                'ndvi_url': indices['ndvi'].getThumbURL({
+                    'region': polygon,
+                    'dimensions': f'{width}x{height}',
+                    'format': 'png',
+                    'palette': ['red', 'yellow', 'green'],
+                    'min': -1,
+                    'max': 1
+                }),
+                'wetness_url': indices['wetness'].getThumbURL({
+                    'region': polygon,
+                    'dimensions': f'{width}x{height}',
+                    'format': 'png',
+                    'palette': ['brown', 'yellow', 'blue'],
+                    'min': -2000,
+                    'max': 2000
+                }),
+                'dryness_url': indices['dryness'].getThumbURL({
+                    'region': polygon,
+                    'dimensions': f'{width}x{height}',
+                    'format': 'png',
+                    'palette': ['blue', 'yellow', 'red'],
+                    'min': -2000,
+                    'max': 4000
+                }),
+                'heat_url': indices['heat'].getThumbURL({
+                    'region': polygon,
+                    'dimensions': f'{width}x{height}',
+                    'format': 'png',
+                    'palette': ['blue', 'cyan', 'yellow', 'red'],
+                    'min': 250,
+                    'max': 350
+                })
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating multi-index images: {e}")
+            raise
+
+    @staticmethod
+    def _calculate_spectral_indices(s2_image, landsat_image, polygon):
+        """Calculate spectral indices from satellite imagery"""
+        try:
+            # NDVI from Sentinel-2
+            ndvi = s2_image.normalizedDifference(['B8', 'B4']).rename('NDVI')
+            
+            # Tasseled Cap components from Landsat 8
+            wetness = (landsat_image.select('SR_B2').multiply(0.1511)
+                    .add(landsat_image.select('SR_B3').multiply(0.1973))
+                    .add(landsat_image.select('SR_B4').multiply(0.3283))
+                    .add(landsat_image.select('SR_B5').multiply(0.3407))
+                    .add(landsat_image.select('SR_B6').multiply(-0.7117))
+                    .add(landsat_image.select('SR_B7').multiply(-0.4559))).rename('Wetness')
+            
+            # Brightness (for dryness calculation)
+            brightness = (landsat_image.select('SR_B2').multiply(0.3029)
+                        .add(landsat_image.select('SR_B3').multiply(0.2786))
+                        .add(landsat_image.select('SR_B4').multiply(0.4733))
+                        .add(landsat_image.select('SR_B5').multiply(0.5599))
+                        .add(landsat_image.select('SR_B6').multiply(0.5080))
+                        .add(landsat_image.select('SR_B7').multiply(0.1872))).rename('Brightness')
+            
+            # Dryness (inverse of wetness)
+            dryness = brightness.subtract(wetness).rename('Dryness')
+            
+            # Heat (Land Surface Temperature) from MODIS
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=30)
+            
+            lst_collection = (ee.ImageCollection('MODIS/061/MOD11A1')
+                            .filterBounds(polygon)
+                            .filterDate(start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+                            .select('LST_Day_1km'))
+            
+            if lst_collection.size().getInfo() > 0:
+                heat = lst_collection.mean().multiply(0.02).rename('Heat')
+            else:
+                # Fallback to constant temperature
+                heat = ee.Image.constant(298).rename('Heat')  # ~25°C in Kelvin
+            
+            return {
+                'ndvi': ndvi,
+                'wetness': wetness,
+                'dryness': dryness,
+                'heat': heat
+            }
+            
+        except Exception as e:
+            logger.error(f"Error calculating spectral indices: {e}")
+            # Return default images
+            return {
+                'ndvi': ee.Image.constant(0.3),
+                'wetness': ee.Image.constant(0),
+                'dryness': ee.Image.constant(1000),
+                'heat': ee.Image.constant(298)
+            }
+
+    
+    @staticmethod
     def calculate_area_sqm(coordinates: List[List[float]]) -> float:
         """Calculate polygon area in square meters using Earth Engine"""
         try:
@@ -328,30 +463,35 @@ class GeographicService:
             else:
                 tasseled_cap_wetness = 0.0
             
-            # Get LST for EQI (same as above)
-            lst_collection = (ee.ImageCollection('MODIS/061/MOD11A1')
-                            .filterBounds(polygon)
-                            .filterDate(start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
-                            .select('LST_Day_1km'))
-
-            if lst_collection.size().getInfo() > 0:
-                lst_mean = lst_collection.mean()
-                lst_celsius = lst_mean.multiply(0.02).subtract(273.15)
-                lst_result = lst_celsius.reduceRegion(
-                    reducer=ee.Reducer.mean(),
-                    geometry=polygon,
-                    scale=1000,
-                    maxPixels=1e9
-                ).getInfo()
-                
-                lst_value = lst_result.get('LST_Day_1km')
-                mean_lst_for_eqi = lst_value if lst_value is not None else 25.0
-            else:
-                mean_lst_for_eqi = 25.0
+            # Reuse existing LST method
+            mean_lst_for_eqi = GeographicService.extract_land_surface_temperature(coordinates)
             
-            # PM2.5 from global dataset (using a proxy from AOD)
-            # In practice, you would use a dedicated PM2.5 dataset
-            pm25 = GeographicService.extract_air_quality_aod(coordinates) * 50  # Convert AOD to approximate PM2.5
+            # Get real PM2.5 from CAMS (Copernicus Atmosphere Monitoring Service)
+            try:
+                pm25_collection = (ee.ImageCollection('ECMWF/CAMS/NRT')
+                                 .filterBounds(polygon)
+                                 .filterDate(start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+                                 .select('particulate_matter_d_less_than_25_um_surface'))
+                
+                if pm25_collection.size().getInfo() > 0:
+                    pm25_mean = pm25_collection.mean()
+                    pm25_result = pm25_mean.reduceRegion(
+                        reducer=ee.Reducer.mean(),
+                        geometry=polygon,
+                        scale=40000,  # CAMS data resolution is ~40km
+                        maxPixels=1e9
+                    ).getInfo()
+                    
+                    pm25_value = pm25_result.get('particulate_matter_d_less_than_25_um_surface')
+                    # Convert from kg/m³ to µg/m³ (multiply by 1e9)
+                    pm25 = pm25_value * 1e9 if pm25_value is not None else 20.0
+                else:
+                    logger.warning("No PM2.5 data available, using default value")
+                    pm25 = 20.0
+                    
+            except Exception as pm25_error:
+                logger.warning(f"Error getting PM2.5 data: {pm25_error}, using default value")
+                pm25 = 20.0
             
             return {
                 'mean_ndvi': max(0, min(1, mean_ndvi)),
@@ -370,7 +510,8 @@ class GeographicService:
                 'ndbsi': 0.3,
                 'pm25': 20.0
             }
-    
+
+
     @staticmethod
     def extract_all_environmental_indicators(coordinates: List[List[float]]) -> Dict[str, float]:
         """Extract all environmental indicators from satellite imagery"""

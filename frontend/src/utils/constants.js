@@ -6,17 +6,22 @@ export const API_CONFIG = {
   TIMEOUT: 30000,
   ENDPOINTS: {
     SUSTAINABILITY: {
-      CALCULATE: '/sustainability/calculate',
-      CALCULATE_GEOGRAPHIC: '/sustainability/calculate-geographic',
-      INDICATORS: '/sustainability/indicators',
-      EXAMPLE: '/sustainability/example',
-      WEIGHTS: '/sustainability/weights'
+      CALCULATE: '/api/sustainability/calculate',
+      CALCULATE_GEOGRAPHIC: '/api/sustainability/calculate-geographic',
+      INDICATORS: '/api/sustainability/indicators',
+      EXAMPLE: '/api/sustainability/example',
+      WEIGHTS: '/api/sustainability/weights'
     },
     GEOGRAPHIC: {
-      SATELLITE_IMAGE: '/geographic/satellite-image',
-      AREA: '/geographic/area',
-      ENVIRONMENTAL_INDICATORS: '/geographic/environmental-indicators',
-      TEST_CONNECTION: '/geographic/test-connection'
+      SATELLITE_IMAGE: '/api/geographic/satellite-image',
+      MULTI_INDEX_IMAGES: '/api/geographic/multi-index-images',
+      AREA: '/api/geographic/area',
+      ENVIRONMENTAL_INDICATORS: '/api/geographic/environmental-indicators',
+      TEST_CONNECTION: '/api/geographic/test-connection'
+    },
+    TIMESERIES: {
+      ANALYZE: '/api/timeseries/analyze',
+      AVAILABLE_YEARS: '/api/timeseries/available-years'
     }
   }
 };
@@ -164,16 +169,74 @@ export const MAP_CONFIG = {
   }
 };
 
+// Multi-index image configuration
+export const MULTI_INDEX_CONFIG = {
+  INDICES: {
+    NDVI: {
+      name: 'NDVI (Vegetation)',
+      description: 'Normalized Difference Vegetation Index - Shows vegetation health',
+      color: '#10B981'
+    },
+    WETNESS: {
+      name: 'Wetness',
+      description: 'Tasseled Cap Wetness - Shows moisture content',
+      color: '#3B82F6'
+    },
+    DRYNESS: {
+      name: 'Dryness',
+      description: 'Brightness minus Wetness - Shows dry/bare areas',
+      color: '#F59E0B'
+    },
+    HEAT: {
+      name: 'Heat (LST)',
+      description: 'Land Surface Temperature - Shows thermal patterns',
+      color: '#EF4444'
+    }
+  },
+  DISPLAY_ORDER: ['NDVI', 'WETNESS', 'DRYNESS', 'HEAT']
+};
+
+// Time series configuration
+export const TIMESERIES_CONFIG = {
+  AVAILABLE_YEARS: {
+    START: 2000,  
+    END: 2024
+  },
+  DEFAULT_YEARS: [2020, 2021, 2022, 2023, 2024],
+  ANIMATION_CONFIG: {
+    FRAMES_PER_SECOND: 1,
+    DIMENSIONS: 512
+  },
+  // Add this new section
+  IMAGE_FALLBACK: {
+    ENABLE_CORS_PROXY: false,
+    SHOW_DIRECT_LINKS: true
+  }
+};
+
 // UI constants
 export const UI_CONSTANTS = {
   LOADING_MESSAGES: {
     CALCULATING: 'Extracting Calculating Environmental indices...',
     EXTRACTING_DATA: 'Extracting environmental data...',
-    LOADING_IMAGE: 'Loading satellite image...'
+    LOADING_IMAGE: 'Loading satellite image...',
+    ANALYZING_TIMESERIES: 'Analyzing environmental changes over time...',
+    GENERATING_ANIMATION: 'Generating time series animation...',
+    EXTRACTING_YEARLY_DATA: 'Extracting data for selected years...'
   },
   ERROR_MESSAGES: {
     CALCULATION_FAILED: 'Failed to calculate sustainability index',
     INVALID_POLYGON: 'Invalid polygon coordinates',
-    CONNECTION_ERROR: 'Connection error. Please try again.'
+    CONNECTION_ERROR: 'Connection error. Please try again.',
+    TIMESERIES_FAILED: 'Failed to analyze time series data',
+    INVALID_YEAR_SELECTION: 'Please select valid years for analysis'
   }
+};
+
+// CORS and image handling configuration
+export const IMAGE_CONFIG = {
+  CORS_PROXY: import.meta.env.VITE_CORS_PROXY || '', // Optional CORS proxy
+  FALLBACK_ENABLED: true,
+  RETRY_ATTEMPTS: 2,
+  TIMEOUT: 10000
 };

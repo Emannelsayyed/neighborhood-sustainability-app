@@ -79,6 +79,22 @@ class ApiService {
     return response.json();
   }
 
+
+  static async getMultiIndexImages(coordinates, width = 800, height = 600) {
+    const response = await fetch(`${API_BASE_URL}/api/geographic/multi-index-images`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coordinates, width, height })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to get multi-index images');
+    }
+    
+    return response.json();
+  }
+
   static async calculateArea(coordinates) {
     const response = await fetch(`${API_BASE_URL}/api/geographic/area`, {
       method: 'POST',
@@ -104,6 +120,32 @@ class ApiService {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.detail || 'Failed to extract environmental indicators');
+    }
+    
+    return response.json();
+  }
+
+    // Time series endpoints
+  static async analyzeTimeSeries(data) {
+    const response = await fetch(`${API_BASE_URL}/api/timeseries/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Time series analysis failed');
+    }
+    
+    return response.json();
+  }
+
+  static async getAvailableYears() {
+    const response = await fetch(`${API_BASE_URL}/api/timeseries/available-years`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch available years');
     }
     
     return response.json();
