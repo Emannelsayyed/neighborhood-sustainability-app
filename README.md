@@ -343,9 +343,6 @@ venv\Scripts\activate     # On Windows
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-The backend will be available at: `http://localhost:8000`
-API documentation will be available at: `http://localhost:8000/docs`
-
 #### Start the Frontend (in a new terminal):
 ```bash
 cd frontend
@@ -357,7 +354,6 @@ npm install
 npm run dev
 ```
 
-The frontend will be available at: `http://localhost:5173`
 
 ### Option 2: Run with Docker
 
@@ -371,15 +367,7 @@ docker-compose up -d --build
 
 ## Testing the Application
 
-### 1. Test Backend API
-Visit `http://localhost:8000/docs` to see the interactive API documentation.
-
-Test the health endpoint:
-```bash
-curl http://localhost:8000/api/health
-```
-
-### 2. Test Example Calculation
+### 1. Test Example Calculation
 ```bash
 curl -X POST "http://localhost:8000/api/calculate" \
   -H "Content-Type: application/json" \
@@ -413,9 +401,6 @@ curl -X POST "http://localhost:8000/api/calculate" \
     }
   }'
 ```
-
-### 3. Access the Frontend
-Open your browser and navigate to `http://localhost:5173`
 
 ## Troubleshooting
 
